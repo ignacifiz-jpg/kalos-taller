@@ -968,7 +968,7 @@ const cochesRef = db.ref('coches_v2');
 // GEMINI API
 // ============================================================
 const GEMINI_API_KEY = "AIzaSyArk03e1ro2fOZzcFCObH1nm3ouviTdxJk";
-const GEMINI_MODEL = "gemini-2.0-flash";
+const GEMINI_MODEL = "gemini-1.5-flash-latest";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
 const IA_SYSTEM_PROMPT = `Eres un asistente experto de un taller mecánico. Tu trabajo es leer texto en bruto (mensajes de WhatsApp, notas, listas) sobre un coche que entra al taller y extraer TODA la información estructurada posible para rellenar una ficha.
@@ -1018,7 +1018,8 @@ REGLAS IMPORTANTES:
 
 Devuelve SOLO el JSON, nada más.`;
 
-async function llamarGemini(textoUsuario) {
+async function llamarGeminiConModelo(modelo, textoUsuario) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${GEMINI_API_KEY}`;
   const body = {
     contents: [{
       role: "user",
@@ -1032,20 +1033,51 @@ async function llamarGemini(textoUsuario) {
       responseMimeType: "application/json"
     }
   };
-  const r = await fetch(GEMINI_URL, {
+  const r = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   });
   if (!r.ok) {
     const errTxt = await r.text();
-    throw new Error('Gemini HTTP ' + r.status + ': ' + errTxt.slice(0, 200));
+    const err = new Error('HTTP ' + r.status);
+    err.status = r.status;
+    err.detail = errTxt.slice(0, 300);
+    throw err;
   }
   const data = await r.json();
   const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  // Limpieza por si acaso devuelve con ```json
   const clean = txt.replace(/^```json\s*/i, '').replace(/```$/, '').trim();
   return JSON.parse(clean);
+}
+
+async function llamarGemini(textoUsuario) {
+  // Lista de modelos a probar en orden, por si uno está sin cuota
+  const modelos = [
+    'gemini-1.5-flash-latest',
+    'gemini-1.5-flash',
+    'gemini-1.5-flash-8b',
+    'gemini-pro'
+  ];
+  let ultimoError = null;
+  for (const modelo of modelos) {
+    try {
+      console.log('Probando modelo:', modelo);
+      return await llamarGeminiConModelo(modelo, textoUsuario);
+    } catch (e) {
+      console.warn('Falló', modelo, e.status, e.detail);
+      ultimoError = e;
+      // Solo seguimos probando si es error 429 (cuota) o 404 (modelo no existe)
+      if (e.status !== 429 && e.status !== 404) {
+        throw e;
+      }
+    }
+  }
+  // Si todos fallaron
+  if (ultimoError && ultimoError.status === 429) {
+    throw new Error('Has alcanzado el límite de peticiones. Espera 1 minuto y prueba otra vez. Si vuelve a pasar es que tu cuota diaria está agotada (se renueva en 24h).');
+  }
+  throw new Error('No se pudo conectar con Gemini: ' + (ultimoError ? ultimoError.message : 'error desconocido'));
 }
 
 // ============================================================
