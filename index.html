@@ -648,18 +648,17 @@
 <div class="setup-overlay" id="setup-overlay">
   <div class="setup-box">
     <h2>Configuración inicial</h2>
-    <p>Para sincronizar los datos entre tú y tu compañero, necesitamos una <strong>"Bin ID" de JSONBin.io</strong> (gratis).</p>
-    <p><strong>Pasos rápidos (solo lo hace uno de los dos, una vez):</strong></p>
+    <p>Para que tú y tu compañero veáis los mismos datos, necesitáis un <strong>"Bin ID" de npoint.io</strong> (gratis, sin registro).</p>
+    <p><strong>Pasos rápidos (solo lo hace UNO de los dos, una vez):</strong></p>
     <p style="font-size: 13px;">
-      1. Ve a <a href="https://jsonbin.io/login" target="_blank">jsonbin.io</a> y crea cuenta (gratis).<br>
-      2. En el dashboard, pulsa <strong>"Create Bin"</strong>.<br>
-      3. Pega <code>{}</code> y guarda.<br>
-      4. Copia la <strong>BIN ID</strong> (texto largo en la URL después de <code>/b/</code>).<br>
-      5. También copia tu <strong>MASTER KEY</strong> desde <em>API Keys</em>.<br>
-      6. Pásaselo a tu compañero por WhatsApp para que lo meta también.
+      1. Abre <a href="https://www.npoint.io/" target="_blank">npoint.io</a> en otra pestaña.<br>
+      2. Pulsa el botón <strong>"Create"</strong> (azul, arriba).<br>
+      3. Te lleva a un editor con un JSON de ejemplo. Bórralo y deja <code>{}</code>.<br>
+      4. Pulsa <strong>"Save"</strong> arriba a la derecha.<br>
+      5. Mira la URL: será <code>npoint.io/docs/<strong>abc123def456</strong></code> — copia esa parte final.<br>
+      6. Pega el código abajo y pásaselo a tu compañero por WhatsApp.
     </p>
-    <input type="text" id="setup-bin" placeholder="BIN ID (ej. 65f3a1b2acd3cb34a8c123ef)">
-    <input type="text" id="setup-key" placeholder="MASTER KEY (X-Master-Key)">
+    <input type="text" id="setup-bin" placeholder="Bin ID de npoint (ej. abc123def456)">
     <div class="btn-row">
       <button class="secondary" id="setup-skip">Solo local</button>
       <button id="setup-save">Conectar</button>
@@ -669,10 +668,9 @@
 
 <script>
 // ============================================================
-// CONFIG: ajusta estas dos líneas para no pedir setup cada vez
+// CONFIG: ajusta esta línea para no pedir setup cada vez
 // ============================================================
-const HARDCODED_BIN_ID = '';      // pega aquí tu BIN_ID si quieres
-const HARDCODED_MASTER_KEY = '';  // pega aquí tu MASTER_KEY si quieres
+const HARDCODED_BIN_ID = '';  // pega aquí tu BIN_ID de npoint si quieres
 
 // Default data
 const DEFAULT_MATERIALES = [
@@ -708,7 +706,7 @@ const DEFAULT_TRABAJOS = [
 ];
 
 const LS_KEY = 'kalos-itv-data-v1';
-const LS_CONFIG = 'kalos-itv-config-v1';
+const LS_CONFIG = 'kalos-itv-config-v2';
 
 let state = {
   materiales: [...DEFAULT_MATERIALES],
@@ -718,7 +716,7 @@ let state = {
   _version: 0
 };
 
-let config = { binId: '', masterKey: '' };
+let config = { binId: '' };
 let saveTimer = null;
 let lastRemoteVersion = -1;
 
@@ -751,16 +749,13 @@ function loadLocal() {
 }
 
 async function saveRemote() {
-  if (!config.binId || !config.masterKey) return;
+  if (!config.binId) return;
   setSyncStatus('saving', 'Guardando...');
   try {
     state._version = Date.now();
-    const r = await fetch(`https://api.jsonbin.io/v3/b/${config.binId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Master-Key': config.masterKey
-      },
+    const r = await fetch(`https://api.npoint.io/${config.binId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(state)
     });
     if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -773,16 +768,13 @@ async function saveRemote() {
 }
 
 async function loadRemote() {
-  if (!config.binId || !config.masterKey) return false;
+  if (!config.binId) return false;
   setSyncStatus('saving', 'Cargando...');
   try {
-    const r = await fetch(`https://api.jsonbin.io/v3/b/${config.binId}/latest`, {
-      headers: { 'X-Master-Key': config.masterKey }
-    });
+    const r = await fetch(`https://api.npoint.io/${config.binId}`);
     if (!r.ok) throw new Error('HTTP ' + r.status);
-    const data = await r.json();
-    const remote = data.record || {};
-    if (remote.materiales) {
+    const remote = await r.json();
+    if (remote && remote.materiales) {
       const remoteVer = remote._version || 0;
       const localVer = state._version || 0;
       if (remoteVer >= localVer) {
@@ -791,7 +783,7 @@ async function loadRemote() {
         saveLocal();
       }
     } else {
-      // Empty bin → upload our state
+      // Bin vacío → subimos nuestro estado
       await saveRemote();
     }
     setSyncStatus('ok', 'Sincronizado');
@@ -809,16 +801,13 @@ function queueSave() {
   saveTimer = setTimeout(saveRemote, 800);
 }
 
-// Auto-refresh from remote every 15s
+// Auto-refresh desde el remoto cada 15s
 async function pollRemote() {
-  if (!config.binId || !config.masterKey) return;
+  if (!config.binId) return;
   try {
-    const r = await fetch(`https://api.jsonbin.io/v3/b/${config.binId}/latest`, {
-      headers: { 'X-Master-Key': config.masterKey }
-    });
+    const r = await fetch(`https://api.npoint.io/${config.binId}`);
     if (!r.ok) return;
-    const data = await r.json();
-    const remote = data.record || {};
+    const remote = await r.json();
     const remoteVer = remote._version || 0;
     if (remoteVer > lastRemoteVersion && remoteVer > (state._version || 0)) {
       state = { ...state, ...remote };
@@ -992,16 +981,15 @@ document.getElementById('add-trab-btn').addEventListener('click', () => {
 
 // ===== Setup dialog =====
 function loadConfig() {
-  if (HARDCODED_BIN_ID && HARDCODED_MASTER_KEY) {
+  if (HARDCODED_BIN_ID) {
     config.binId = HARDCODED_BIN_ID;
-    config.masterKey = HARDCODED_MASTER_KEY;
     return true;
   }
   try {
     const raw = localStorage.getItem(LS_CONFIG);
     if (raw) {
       const c = JSON.parse(raw);
-      if (c.binId && c.masterKey) {
+      if (c.binId) {
         config = c;
         return true;
       }
@@ -1015,13 +1003,13 @@ function saveConfig() {
 
 document.getElementById('setup-save').addEventListener('click', async () => {
   const bin = document.getElementById('setup-bin').value.trim();
-  const key = document.getElementById('setup-key').value.trim();
-  if (!bin || !key) {
-    alert('Necesitas pegar las dos cosas.');
+  if (!bin) {
+    alert('Necesitas pegar el Bin ID de npoint.');
     return;
   }
-  config.binId = bin;
-  config.masterKey = key;
+  // Si el usuario pegó una URL completa, extraemos solo el ID
+  const match = bin.match(/([a-f0-9]{16,})/i);
+  config.binId = match ? match[1] : bin;
   saveConfig();
   document.getElementById('setup-overlay').classList.remove('show');
   await loadRemote();
