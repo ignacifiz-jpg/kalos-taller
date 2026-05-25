@@ -657,6 +657,172 @@
     padding: 14px 16px;
     margin-bottom: 12px;
   }
+
+  /* ============ LOGIN SCREEN ============ */
+  .login-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 20px;
+  }
+  .login-screen.show { display: flex; }
+  .login-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(212, 164, 74, 0.15) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(96, 165, 250, 0.10) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  .login-box {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px 36px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.5);
+  }
+  .login-logo {
+    width: 64px; height: 64px;
+    background: var(--brand);
+    border-radius: 16px;
+    margin: 0 auto 20px;
+    display: flex; align-items: center; justify-content: center;
+    color: #0d1421;
+    font-size: 32px;
+    font-weight: 700;
+  }
+  .login-box h1 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .login-box .sub {
+    font-size: 14px;
+    color: var(--ink-3);
+    margin-bottom: 28px;
+    line-height: 1.5;
+  }
+  .btn-google {
+    width: 100%;
+    background: #fff;
+    color: #1f2937;
+    border: none;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.15s;
+  }
+  .btn-google:hover { background: #f3f4f6; transform: translateY(-1px); }
+  .btn-google:active { transform: translateY(0); }
+  .login-error {
+    background: var(--bad-bg);
+    color: var(--bad);
+    border: 1px solid var(--bad);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 13px;
+    margin-top: 16px;
+    display: none;
+    text-align: left;
+    line-height: 1.5;
+  }
+  .login-error.show { display: block; }
+  .login-foot {
+    font-size: 11px;
+    color: var(--ink-4);
+    margin-top: 20px;
+    line-height: 1.5;
+  }
+
+  /* ============ USER CHIP ============ */
+  .user-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px 4px 4px;
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .user-chip:hover { background: var(--bg-4); border-color: var(--border-h); }
+  .user-chip img {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .user-chip .user-name {
+    color: var(--ink-2);
+    font-weight: 500;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .user-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.5);
+    min-width: 200px;
+    overflow: hidden;
+    display: none;
+    z-index: 60;
+  }
+  .user-menu.show { display: block; }
+  .user-menu-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-3);
+  }
+  .user-menu-header .email {
+    font-size: 12px;
+    color: var(--ink-3);
+    margin-top: 2px;
+    word-break: break-all;
+  }
+  .user-menu button {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    color: var(--ink);
+    padding: 10px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .user-menu button:hover { background: var(--bg-3); }
+  .user-menu button.danger { color: var(--bad); }
+
+  /* Ocultar app mientras se comprueba auth */
+  .app-hidden { display: none !important; }
   .tech-card h3 {
     font-size: 14px;
     margin-bottom: 10px;
@@ -670,6 +836,28 @@
 </style>
 </head>
 <body>
+
+<!-- ============ LOGIN SCREEN ============ -->
+<div class="login-screen show" id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">⚙</div>
+    <h1>Taller CRM</h1>
+    <p class="sub">Acceso restringido<br>Inicia sesión con una cuenta autorizada</p>
+    <button class="btn-google" id="btn-google-login">
+      <svg width="20" height="20" viewBox="0 0 48 48">
+        <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
+        <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z"/>
+        <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
+        <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/>
+      </svg>
+      Iniciar sesión con Google
+    </button>
+    <div class="login-error" id="login-error"></div>
+    <p class="login-foot">Solo cuentas autorizadas pueden acceder al taller.<br>Si crees que deberías tener acceso, pídeselo al administrador.</p>
+  </div>
+</div>
+
+<div id="app-root" class="app-hidden">
 
 <!-- ============ TOPBAR ============ -->
 <header class="topbar">
@@ -685,6 +873,17 @@
       <span id="sync-text">Conectando...</span>
     </div>
     <button class="btn btn-primary" id="btn-nuevo">+ Nuevo coche</button>
+    <div class="user-chip" id="user-chip" style="display:none">
+      <img id="user-avatar" src="" alt="">
+      <span class="user-name" id="user-name"></span>
+      <div class="user-menu" id="user-menu">
+        <div class="user-menu-header">
+          <div style="font-weight: 500;" id="user-menu-name"></div>
+          <div class="email" id="user-menu-email"></div>
+        </div>
+        <button class="danger" id="btn-logout">↩ Cerrar sesión</button>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -963,8 +1162,11 @@
   </div>
 </div>
 
+</div><!-- /app-root -->
+
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <script>
@@ -984,6 +1186,122 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const cochesRef = db.ref('coches_v2');
 const backupsRef = db.ref('backups_v1');
+
+// ============================================================
+// AUTH · LOGIN CON GOOGLE
+// ============================================================
+const ALLOWED_EMAILS = [
+  'ignacifiz@gmail.com',
+  'sanchez7max@gmail.com'
+];
+
+const auth = firebase.auth();
+const provider = new firebase.auth.GoogleAuthProvider();
+let appInitialized = false;
+
+function mostrarLoginError(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function ocultarLoginError() {
+  const el = document.getElementById('login-error');
+  el.classList.remove('show');
+  el.textContent = '';
+}
+
+function mostrarLogin() {
+  document.getElementById('login-screen').classList.add('show');
+  document.getElementById('app-root').classList.add('app-hidden');
+}
+
+function mostrarApp(user) {
+  document.getElementById('login-screen').classList.remove('show');
+  document.getElementById('app-root').classList.remove('app-hidden');
+  // Rellenar user chip
+  const chip = document.getElementById('user-chip');
+  chip.style.display = 'flex';
+  const avatar = document.getElementById('user-avatar');
+  if (user.photoURL) {
+    avatar.src = user.photoURL;
+  } else {
+    avatar.style.display = 'none';
+  }
+  const firstName = (user.displayName || user.email || '').split(' ')[0] || 'Usuario';
+  document.getElementById('user-name').textContent = firstName;
+  document.getElementById('user-menu-name').textContent = user.displayName || firstName;
+  document.getElementById('user-menu-email').textContent = user.email;
+}
+
+document.getElementById('btn-google-login').addEventListener('click', async () => {
+  ocultarLoginError();
+  const btn = document.getElementById('btn-google-login');
+  btn.disabled = true;
+  try {
+    await auth.signInWithPopup(provider);
+    // onAuthStateChanged se encarga del resto
+  } catch (e) {
+    console.error('login error:', e);
+    if (e.code === 'auth/popup-blocked') {
+      mostrarLoginError('Tu navegador ha bloqueado el popup. Permite popups y reintenta.');
+    } else if (e.code === 'auth/popup-closed-by-user') {
+      // El usuario cerró el popup, no es error grave
+    } else {
+      mostrarLoginError('Error al iniciar sesión: ' + (e.message || e.code));
+    }
+    btn.disabled = false;
+  }
+});
+
+// Botón logout
+document.getElementById('btn-logout').addEventListener('click', async () => {
+  if (!confirm('¿Cerrar sesión?')) return;
+  try {
+    await auth.signOut();
+  } catch (e) { console.error('logout error:', e); }
+});
+
+// Toggle user menu
+document.getElementById('user-chip').addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.getElementById('user-menu').classList.toggle('show');
+});
+document.addEventListener('click', () => {
+  document.getElementById('user-menu').classList.remove('show');
+});
+
+// Listener de estado de autenticación
+auth.onAuthStateChanged(async (user) => {
+  if (!user) {
+    // No hay sesión → mostrar login
+    mostrarLogin();
+    return;
+  }
+  
+  // Hay sesión → verificar que el email está autorizado
+  const email = (user.email || '').toLowerCase();
+  if (!ALLOWED_EMAILS.includes(email)) {
+    // Email no autorizado → cerrar sesión y mostrar error
+    mostrarLoginError(`La cuenta ${user.email} no tiene acceso a este taller. Cierra sesión de Google en otra pestaña y prueba con una cuenta autorizada.`);
+    try { await auth.signOut(); } catch(e) {}
+    mostrarLogin();
+    const btn = document.getElementById('btn-google-login');
+    if (btn) btn.disabled = false;
+    return;
+  }
+  
+  // Email autorizado → mostrar app
+  mostrarApp(user);
+  
+  // Inicializar la app si no se ha hecho antes
+  if (!appInitialized) {
+    appInitialized = true;
+    setSyncStatus('saving', 'Conectando...');
+    startRealtimeSync();
+    setTimeout(() => { comprobarBackupSemanal(); }, 3000);
+  }
+});
 
 // ============================================================
 // GEMINI API
@@ -2080,13 +2398,8 @@ document.getElementById('ia-run').addEventListener('click', async () => {
 // ============================================================
 // INIT
 // ============================================================
-setSyncStatus('saving', 'Conectando...');
-startRealtimeSync();
-
-// Comprobar si hay que hacer backup automático (después de cargar los datos)
-setTimeout(() => {
-  comprobarBackupSemanal();
-}, 3000);
+// El init real ocurre dentro de onAuthStateChanged una vez que el usuario
+// se ha logueado correctamente con una cuenta autorizada.
 </script>
 
 </body>
