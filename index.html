@@ -1152,7 +1152,8 @@
         </div>
 
         <div style="margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap;">
-          <button class="btn btn-sm" id="btn-copiar-presup">📋 Copiar presupuesto para WhatsApp</button>
+          <button class="btn btn-sm" id="btn-copiar-presup">📋 Copiar para WhatsApp</button>
+          <button class="btn btn-sm btn-primary" id="btn-descargar-pdf">⬇ Descargar PDF presupuesto</button>
         </div>
       </div>
 
@@ -1193,6 +1194,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<!-- jsPDF para generar PDF de presupuestos -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
 <script>
 // ============================================================
@@ -2002,6 +2007,278 @@ function presupuestoTextoWhatsApp(c) {
   return txt;
 }
 
+function generarPDFPresupuesto(c) {
+  const p = calcularPresupuesto(c);
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  
+  const pageWidth = 210;
+  const margin = 18;
+  const usableWidth = pageWidth - margin * 2;
+  
+  // ====== COLORES ======
+  const BRAND = [212, 164, 74];       // #d4a44a ámbar
+  const INK = [26, 37, 64];           // azul oscuro
+  const INK_DIM = [120, 130, 150];    // gris medio
+  const LINE = [220, 220, 225];       // gris claro
+  
+  // ====== CABECERA ======
+  // Banda superior color marca
+  doc.setFillColor(...INK);
+  doc.rect(0, 0, pageWidth, 38, 'F');
+  
+  // Logo (cuadrado ámbar con engranaje)
+  doc.setFillColor(...BRAND);
+  doc.roundedRect(margin, 12, 14, 14, 3, 3, 'F');
+  doc.setTextColor(...INK);
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('⚙', margin + 7, 22, { align: 'center' });
+  
+  // Título
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(22);
+  doc.setFont('helvetica', 'bold');
+  doc.text('PRESUPUESTO', margin + 22, 21);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...BRAND);
+  doc.text('Taller de reparación', margin + 22, 28);
+  
+  // Fecha + número de presupuesto a la derecha
+  const fecha = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const numPresupuesto = 'Nº ' + new Date().getFullYear() + '-' + String(Date.now()).slice(-5);
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(9);
+  doc.text(numPresupuesto, pageWidth - margin, 18, { align: 'right' });
+  doc.setTextColor(...BRAND);
+  doc.text(fecha, pageWidth - margin, 25, { align: 'right' });
+  
+  // ====== DATOS CLIENTE Y COCHE ======
+  let y = 50;
+  
+  // Cliente (izq) y Vehículo (dcha)
+  const colW = usableWidth / 2 - 4;
+  
+  doc.setTextColor(...INK_DIM);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.text('CLIENTE', margin, y);
+  doc.text('VEHÍCULO', margin + colW + 8, y);
+  
+  doc.setTextColor(...INK);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  y += 6;
+  
+  // Cliente
+  const clienteLineas = [];
+  if (c.propNombre) clienteLineas.push(c.propNombre);
+  if (c.propTel) clienteLineas.push('Tel. ' + c.propTel);
+  if (c.propEmail) clienteLineas.push(c.propEmail);
+  if (c.propDni) clienteLineas.push('DNI ' + c.propDni);
+  if (c.propDireccion) clienteLineas.push(c.propDireccion);
+  if (clienteLineas.length === 0) clienteLineas.push('—');
+  
+  // Vehículo
+  const vehiculoLineas = [];
+  vehiculoLineas.push(tituloCoche(c));
+  if (c.matricula) vehiculoLineas.push('Matrícula: ' + c.matricula);
+  if (c.motor) vehiculoLineas.push('Motor: ' + c.motor);
+  if (c.anio) vehiculoLineas.push('Año: ' + c.anio);
+  if (c.km) vehiculoLineas.push('Km: ' + c.km);
+  if (c.color) vehiculoLineas.push('Color: ' + c.color);
+  
+  const yStart = y;
+  let yL = y;
+  let yR = y;
+  
+  doc.setFontSize(10);
+  clienteLineas.forEach((linea, i) => {
+    if (i === 0) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+    } else {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+    }
+    doc.setTextColor(...INK);
+    doc.text(linea, margin, yL);
+    yL += i === 0 ? 7 : 5;
+  });
+  
+  vehiculoLineas.forEach((linea, i) => {
+    if (i === 0) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+    } else {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+    }
+    doc.setTextColor(...INK);
+    doc.text(linea, margin + colW + 8, yR);
+    yR += i === 0 ? 7 : 5;
+  });
+  
+  y = Math.max(yL, yR) + 8;
+  
+  // ====== LÍNEA SEPARADORA ======
+  doc.setDrawColor(...LINE);
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 8;
+  
+  // ====== TABLA DE PIEZAS ======
+  doc.setTextColor(...INK_DIM);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.text('DETALLE DEL PRESUPUESTO', margin, y);
+  y += 4;
+  
+  // Construir filas
+  const filas = [];
+  p.piezasActivas.forEach(m => {
+    const precioCliente = (m.price || 0) * (1 + p.margen / 100);
+    filas.push([
+      m.name,
+      CAT_NOMBRE_LARGO[m.cat] || m.cat,
+      '1',
+      precioCliente.toFixed(2) + ' €',
+      precioCliente.toFixed(2) + ' €'
+    ]);
+  });
+  
+  // Mano de obra como una fila más
+  if (p.horas > 0) {
+    filas.push([
+      'Mano de obra',
+      'Servicio',
+      p.horas + ' h',
+      p.tarifa.toFixed(2) + ' €/h',
+      p.manoObra.toFixed(2) + ' €'
+    ]);
+  }
+  
+  doc.autoTable({
+    startY: y,
+    head: [['Concepto', 'Categoría', 'Cantidad', 'P. unitario', 'Importe']],
+    body: filas,
+    theme: 'plain',
+    styles: {
+      font: 'helvetica',
+      fontSize: 9,
+      cellPadding: 3,
+      textColor: INK,
+      lineColor: LINE,
+      lineWidth: 0.1
+    },
+    headStyles: {
+      fillColor: INK,
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 8.5,
+      cellPadding: 4
+    },
+    alternateRowStyles: {
+      fillColor: [248, 247, 244]
+    },
+    columnStyles: {
+      0: { cellWidth: 70, fontStyle: 'bold' },
+      1: { cellWidth: 28, textColor: INK_DIM, fontSize: 8 },
+      2: { cellWidth: 22, halign: 'center' },
+      3: { cellWidth: 28, halign: 'right' },
+      4: { cellWidth: 26, halign: 'right', fontStyle: 'bold' }
+    },
+    margin: { left: margin, right: margin }
+  });
+  
+  y = doc.lastAutoTable.finalY + 6;
+  
+  // ====== TOTALES ======
+  const totalesX = pageWidth - margin - 70;
+  const totalesAnchoEtiqueta = 38;
+  const totalesAnchoValor = 32;
+  
+  function lineaTotal(label, value, bold, color) {
+    doc.setFontSize(bold ? 10 : 9);
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.setTextColor(...(color || INK));
+    doc.text(label, totalesX, y);
+    doc.text(value, totalesX + totalesAnchoEtiqueta + totalesAnchoValor, y, { align: 'right' });
+    y += bold ? 6 : 5;
+  }
+  
+  lineaTotal('Subtotal piezas', p.precioPiezasCliente.toFixed(2) + ' €', false);
+  if (p.horas > 0) {
+    lineaTotal('Mano de obra', p.manoObra.toFixed(2) + ' €', false);
+  }
+  if (p.ajuste !== 0) {
+    lineaTotal(p.ajuste < 0 ? 'Descuento' : 'Suplemento', (p.ajuste >= 0 ? '+' : '') + p.ajuste.toFixed(2) + ' €', false);
+  }
+  
+  y += 2;
+  doc.setDrawColor(...INK);
+  doc.setLineWidth(0.4);
+  doc.line(totalesX, y, totalesX + totalesAnchoEtiqueta + totalesAnchoValor, y);
+  y += 6;
+  
+  // TOTAL grande
+  doc.setFillColor(...INK);
+  doc.rect(totalesX - 2, y - 5, totalesAnchoEtiqueta + totalesAnchoValor + 4, 10, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('TOTAL', totalesX, y + 1);
+  doc.setTextColor(...BRAND);
+  doc.setFontSize(13);
+  doc.text(p.total.toFixed(2) + ' €', totalesX + totalesAnchoEtiqueta + totalesAnchoValor, y + 1, { align: 'right' });
+  y += 14;
+  
+  // ====== NOTAS / TRABAJOS ======
+  if (c.trabajos && c.trabajos.length > 0) {
+    y += 6;
+    doc.setTextColor(...INK_DIM);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text('TRABAJOS A REALIZAR', margin, y);
+    y += 5;
+    
+    doc.setTextColor(...INK);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    c.trabajos.forEach(t => {
+      doc.text('•  ' + t.name, margin, y);
+      y += 4.5;
+    });
+  }
+  
+  // ====== PIE DE PÁGINA ======
+  const pieY = 275;
+  doc.setDrawColor(...LINE);
+  doc.setLineWidth(0.3);
+  doc.line(margin, pieY, pageWidth - margin, pieY);
+  
+  doc.setTextColor(...INK_DIM);
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'italic');
+  doc.text('Presupuesto válido durante 15 días desde la fecha de emisión. Los precios incluyen materiales y mano de obra.', margin, pieY + 6);
+  doc.text('Cualquier intervención adicional será comunicada y presupuestada por separado antes de su ejecución.', margin, pieY + 10);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...INK);
+  doc.setFontSize(8);
+  doc.text('Gracias por confiar en nuestro taller.', pageWidth / 2, pieY + 17, { align: 'center' });
+  
+  // ====== NOMBRE DE ARCHIVO ======
+  const nombreArchivo = [
+    'Presupuesto',
+    c.matricula ? c.matricula.replace(/\s+/g, '') : (c.modelo || 'coche'),
+    new Date().toISOString().slice(0, 10)
+  ].filter(Boolean).join('_') + '.pdf';
+  
+  doc.save(nombreArchivo);
+}
+
 // ============================================================
 // GUARDAR FICHA
 // ============================================================
@@ -2196,6 +2473,25 @@ document.getElementById('btn-copiar-presup').addEventListener('click', async () 
     setTimeout(() => { btn.textContent = original; }, 2000);
   } catch (e) {
     alert('No se pudo copiar. Aquí está el texto:\n\n' + txt);
+  }
+});
+
+// Botón descargar PDF
+document.getElementById('btn-descargar-pdf').addEventListener('click', () => {
+  if (!currentId) return;
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert('La librería de PDF no se ha cargado. Refresca la página y prueba otra vez.');
+    return;
+  }
+  const c = coches[currentId];
+  if (!c.propNombre && !c.matricula) {
+    if (!confirm('No has rellenado nombre del cliente ni matrícula. ¿Generar PDF igualmente?')) return;
+  }
+  try {
+    generarPDFPresupuesto(c);
+  } catch (e) {
+    console.error('PDF error:', e);
+    alert('Error al generar el PDF: ' + e.message);
   }
 });
 
