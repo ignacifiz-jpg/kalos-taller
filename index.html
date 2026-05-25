@@ -692,6 +692,7 @@
 <div class="view-tabs">
   <button class="view-tab active" data-view="kanban">📋 Kanban</button>
   <button class="view-tab" data-view="historico">📁 Histórico</button>
+  <button class="view-tab" data-view="backups">🗄 Backups</button>
 </div>
 
 <!-- ============ KANBAN VIEW ============ -->
@@ -733,6 +734,25 @@
 <!-- ============ HISTORICO VIEW ============ -->
 <div class="view" id="view-historico">
   <div class="historico-list" id="historico-list"></div>
+</div>
+
+<!-- ============ BACKUPS VIEW ============ -->
+<div class="view" id="view-backups">
+  <div style="padding: 20px; max-width: 900px; margin: 0 auto;">
+    <div style="background: var(--bg-2); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap;">
+        <div>
+          <div style="font-weight: 600; font-size: 15px; margin-bottom: 6px;">Copias de seguridad automáticas</div>
+          <div style="font-size: 13px; color: var(--ink-2); line-height: 1.5;">
+            La web hace una copia automática cada 7 días. Guardamos las últimas 4 (1 mes). Si pierdes datos por error, puedes restaurar cualquiera.
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btn-backup-now">🗄 Hacer copia ahora</button>
+      </div>
+      <div id="backup-status" style="font-size: 12px; color: var(--ink-3); margin-top: 12px; font-family: 'JetBrains Mono', monospace;"></div>
+    </div>
+    <div id="backups-list"></div>
+  </div>
 </div>
 
 <!-- ============ MODAL: FICHA ============ -->
@@ -963,6 +983,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const cochesRef = db.ref('coches_v2');
+const backupsRef = db.ref('backups_v1');
 
 // ============================================================
 // GEMINI API
@@ -1685,6 +1706,7 @@ document.querySelectorAll('.view-tab').forEach(b => {
     document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
     b.classList.add('active');
     document.getElementById('view-' + b.dataset.view).classList.add('active');
+    if (b.dataset.view === 'backups') renderBackups();
   });
 });
 
@@ -1697,6 +1719,205 @@ function escapeHtml(s) {
   d.textContent = String(s);
   return d.innerHTML;
 }
+
+// ============================================================
+// BACKUPS AUTOMÁTICOS
+// ============================================================
+const BACKUP_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
+const MAX_BACKUPS = 4;
+let backupsCache = []; // {id, ts, count, auto}
+
+function fmtFechaHora(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' }) +
+    ' · ' + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+}
+
+async function hacerBackup(automatico) {
+  if (Object.keys(coches).length === 0) {
+    console.log('No hay datos que respaldar');
+    return false;
+  }
+  const ts = Date.now();
+  const id = 'bk-' + ts;
+  const datos = {
+    ts: ts,
+    auto: automatico === true,
+    count: Object.keys(coches).length,
+    coches: coches
+  };
+  try {
+    await backupsRef.child(id).set(datos);
+    // Limpiar backups antiguos si pasamos del límite
+    await limpiarBackupsAntiguos();
+    return true;
+  } catch (e) {
+    console.error('Error backup:', e);
+    return false;
+  }
+}
+
+async function limpiarBackupsAntiguos() {
+  try {
+    const snap = await backupsRef.once('value');
+    const todos = snap.val() || {};
+    const lista = Object.keys(todos).map(k => ({ id: k, ts: todos[k].ts || 0 }));
+    lista.sort((a, b) => b.ts - a.ts); // más nuevos primero
+    const aBorrar = lista.slice(MAX_BACKUPS);
+    for (const b of aBorrar) {
+      await backupsRef.child(b.id).remove();
+    }
+  } catch (e) { console.error('clean error:', e); }
+}
+
+async function listarBackups() {
+  try {
+    const snap = await backupsRef.once('value');
+    const todos = snap.val() || {};
+    backupsCache = Object.keys(todos).map(k => ({
+      id: k,
+      ts: todos[k].ts || 0,
+      count: todos[k].count || 0,
+      auto: todos[k].auto === true,
+      coches: todos[k].coches || {}
+    }));
+    backupsCache.sort((a, b) => b.ts - a.ts);
+    return backupsCache;
+  } catch (e) {
+    console.error('list backups error:', e);
+    return [];
+  }
+}
+
+async function comprobarBackupSemanal() {
+  try {
+    const backups = await listarBackups();
+    const ultimoAuto = backups.find(b => b.auto);
+    const ahora = Date.now();
+    
+    if (!ultimoAuto || (ahora - ultimoAuto.ts) > BACKUP_INTERVAL_MS) {
+      console.log('Han pasado +7 días sin backup automático. Creando uno...');
+      const ok = await hacerBackup(true);
+      if (ok) console.log('Backup automático creado.');
+    }
+  } catch (e) {
+    console.error('comprobar backup error:', e);
+  }
+}
+
+async function restaurarBackup(backupId) {
+  const bk = backupsCache.find(b => b.id === backupId);
+  if (!bk) return;
+  const confirm1 = confirm(`¿Restaurar el backup del ${fmtFechaHora(bk.ts)}?\n\nEsto SUSTITUIRÁ todos los coches actuales (${Object.keys(coches).length}) por los del backup (${bk.count}).\n\nSe hará una copia de seguridad del estado actual antes de restaurar.`);
+  if (!confirm1) return;
+  
+  setSyncStatus('saving', 'Restaurando...');
+  try {
+    // Backup del estado actual antes de restaurar
+    await hacerBackup(false);
+    // Limpiar la rama de coches y meter los del backup
+    await cochesRef.set(bk.coches);
+    setSyncStatus('ok', 'Restaurado ✓');
+    alert('Backup restaurado correctamente. ' + bk.count + ' coches recuperados.');
+    renderBackups();
+  } catch (e) {
+    console.error('restaurar error:', e);
+    setSyncStatus('error', 'Error');
+    alert('Error al restaurar: ' + e.message);
+  }
+}
+
+async function descargarBackupComoJSON(backupId) {
+  const bk = backupsCache.find(b => b.id === backupId);
+  if (!bk) return;
+  const data = {
+    fecha: new Date(bk.ts).toISOString(),
+    count: bk.count,
+    coches: bk.coches
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `backup-kalos-taller-${new Date(bk.ts).toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function borrarBackup(backupId) {
+  if (!confirm('¿Borrar este backup? No se puede deshacer.')) return;
+  try {
+    await backupsRef.child(backupId).remove();
+    renderBackups();
+  } catch (e) { console.error(e); }
+}
+
+async function renderBackups() {
+  const list = document.getElementById('backups-list');
+  const status = document.getElementById('backup-status');
+  if (!list) return;
+  
+  await listarBackups();
+  
+  if (backupsCache.length === 0) {
+    list.innerHTML = `
+      <div style="text-align: center; padding: 40px 20px; color: var(--ink-3); background: var(--bg-2); border: 1px solid var(--border); border-radius: 12px;">
+        <div style="font-size: 16px; margin-bottom: 6px;">Sin copias de seguridad todavía</div>
+        <div style="font-size: 13px;">Se creará una automática la próxima vez que abras la web (después de 7 días) o puedes hacer una ahora con el botón de arriba.</div>
+      </div>
+    `;
+  } else {
+    list.innerHTML = backupsCache.map(b => `
+      <div style="background: var(--bg-2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 200px;">
+          <div style="font-weight: 600; font-size: 14px;">${fmtFechaHora(b.ts)}</div>
+          <div style="font-size: 12px; color: var(--ink-3); margin-top: 3px;">
+            ${b.count} ${b.count === 1 ? 'coche' : 'coches'} · 
+            <span style="color: ${b.auto ? 'var(--good)' : 'var(--brand)'}">${b.auto ? '⏱ Automática' : '👤 Manual'}</span>
+          </div>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <button class="btn btn-sm" onclick="descargarBackupComoJSON('${b.id}')" title="Descargar como JSON">⬇ Descargar</button>
+          <button class="btn btn-sm" onclick="restaurarBackup('${b.id}')" title="Restaurar este backup">↻ Restaurar</button>
+          <button class="btn btn-sm btn-danger" onclick="borrarBackup('${b.id}')" title="Borrar este backup">🗑</button>
+        </div>
+      </div>
+    `).join('');
+  }
+  
+  // Status
+  const ultimoAuto = backupsCache.find(b => b.auto);
+  if (ultimoAuto) {
+    const dias = Math.floor((Date.now() - ultimoAuto.ts) / (24 * 60 * 60 * 1000));
+    const proximo = 7 - dias;
+    status.textContent = `Última copia automática: ${fmtFechaHora(ultimoAuto.ts)} · Próxima en ${proximo > 0 ? proximo + ' día(s)' : 'cualquier momento'}`;
+  } else {
+    status.textContent = 'Sin copias automáticas todavía.';
+  }
+}
+
+// Botón manual
+document.getElementById('btn-backup-now').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-backup-now');
+  btn.disabled = true;
+  btn.textContent = '⏳ Creando...';
+  const ok = await hacerBackup(false);
+  btn.disabled = false;
+  btn.textContent = '🗄 Hacer copia ahora';
+  if (ok) {
+    await renderBackups();
+  } else {
+    alert('Error al crear el backup. Inténtalo de nuevo.');
+  }
+});
+
+// Exponer funciones globalmente para que los onclick funcionen
+window.restaurarBackup = restaurarBackup;
+window.descargarBackupComoJSON = descargarBackupComoJSON;
+window.borrarBackup = borrarBackup;
 
 // ============================================================
 // IA · RELLENAR FICHA
@@ -1861,6 +2082,11 @@ document.getElementById('ia-run').addEventListener('click', async () => {
 // ============================================================
 setSyncStatus('saving', 'Conectando...');
 startRealtimeSync();
+
+// Comprobar si hay que hacer backup automático (después de cargar los datos)
+setTimeout(() => {
+  comprobarBackupSemanal();
+}, 3000);
 </script>
 
 </body>
