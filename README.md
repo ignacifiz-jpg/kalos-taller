@@ -3,79 +3,63 @@
 Web para gestionar el presupuesto del Daewoo Kalos / Chevrolet Aveo 1.6 8v SOHC
 con sincronización en tiempo real entre tú y tu compañero.
 
-## 🚀 Cómo desplegarla en internet (gratis, 3 minutos)
+🌐 **URL pública:** https://ignacifiz-jpg.github.io/kalos-taller/
 
-### Paso 1 · Subir la web a Netlify
+## 🚀 Configuración inicial (solo una vez, 1 minuto)
 
-1. Entra en https://app.netlify.com/drop
-2. Arrastra el archivo `index.html` a la zona indicada
-3. Netlify te dará una URL del tipo: `https://random-name-12345.netlify.app`
-4. ✅ Esa URL ya funciona desde móvil y PC
+### Paso 1 · Crear el "bin" de npoint.io (lo hace UNO de los dos)
 
-(Alternativa: https://surge.sh o https://vercel.com también valen)
+1. Abre https://www.npoint.io/
+2. Pulsa el botón **"Create"** (azul, arriba a la derecha)
+3. Te lleva a un editor con un JSON de ejemplo
+4. **Borra todo y deja solo:** `{}`
+5. Pulsa **"Save"** (arriba a la derecha)
+6. Mira la URL del navegador: será algo como
+   `https://www.npoint.io/docs/abc123def456789`
+7. **Copia el código final** (lo que va después de `/docs/`)
+8. Pásaselo a tu compañero por WhatsApp
 
-### Paso 2 · Crear la base de datos compartida (JSONBin.io)
+### Paso 2 · Conectar la web
 
-**Solo lo hace UNO de los dos, una vez.**
+Tú y tu compañero hacéis lo mismo:
 
-1. Entra en https://jsonbin.io/login y crea cuenta (gratis, sin tarjeta)
-2. En el dashboard pulsa **"Create Bin"**
-3. En el editor pega: `{}`
-4. Pulsa **"Create"**
-5. Copia el **BIN ID** (texto largo en la URL, después de `/b/`)
-6. Ve a **API Keys** (menú lateral) y copia tu **MASTER KEY** (X-Master-Key)
-7. Pásale ambos códigos a tu compañero por WhatsApp
-
-### Paso 3 · Configurar la web
-
-Cuando abras la URL de Netlify la primera vez:
-
-1. Aparece una ventana pidiendo BIN ID y MASTER KEY
-2. Los pegáis ambos (tú y tu compañero) en vuestros respectivos navegadores
-3. Pulsáis "Conectar"
-4. ✅ Ya estáis sincronizados
+1. Abrid https://ignacifiz-jpg.github.io/kalos-taller/
+2. Aparece una ventana pidiendo el "Bin ID"
+3. Pegáis el código que habéis creado en el paso anterior
+4. Pulsáis **"Conectar"**
+5. ✅ Ya estáis sincronizados
 
 A partir de aquí, cualquier cambio que hagas (marcar trabajo hecho, cambiar
-precio, añadir material) se ve en el dispositivo del otro en unos segundos.
+precio, añadir material) se ve en el dispositivo del otro en unos 15 segundos.
 
 ## 📱 Acceso desde el móvil
 
-Una vez tengáis la URL de Netlify, podéis añadirla a la pantalla de inicio:
+Una vez tengáis la web abierta, podéis añadirla a la pantalla de inicio:
 
-- **iPhone:** Safari → botón compartir → "Añadir a pantalla de inicio"
-- **Android:** Chrome → menú (⋮) → "Añadir a pantalla principal"
+- **iPhone (Safari):** botón compartir → "Añadir a pantalla de inicio"
+- **Android (Chrome):** menú (⋮) → "Añadir a pantalla principal"
 
 Te queda como si fuera una app.
 
 ## 💡 Funciones de la web
 
 - **Materiales:** los 15 items reales del Kalos (factura Gaudí + AUTODOC).
-  Marca/desmarca para incluir o excluir del total. Añade nuevos.
-- **Presupuesto:** mueve el slider del precio al cliente y mira el beneficio
-  y el reparto entre los dos en tiempo real.
-- **Trabajos:** checklist de los 11 trabajos. Ambos veis qué está hecho.
+  Marca/desmarca el check para incluir o excluir del total. Añade nuevos.
+- **Presupuesto:** slider del precio al cliente (400-900 €), beneficio total,
+  reparto entre los dos en tiempo real, comparativa con taller normal.
+- **Trabajos:** checklist de los 11 trabajos con barra de progreso.
+  Ambos veis qué está hecho.
 - **Técnica:** calado del motor SOHC, procedimiento de distribución,
   útiles necesarios y checklist pre-ITV.
 
 ## 🔒 Privacidad
 
-- Los datos viven en TU bin de JSONBin (gratis hasta 10k peticiones/mes)
-- Nadie más puede leerlos sin la Master Key
+- Los datos viven en npoint.io en un bin público con código aleatorio
+- Solo quien tenga el código puede acceder a vuestros datos
 - También se guardan en el localStorage del navegador como respaldo
+- No metáis datos personales sensibles (DNI, teléfonos del cliente, etc.)
 
-## 🛠 Si queréis editar después
+## 🛠 Si queréis editar el código después
 
-El archivo es `index.html` solo. Si queréis cambiar algo (añadir trabajos
-por defecto, modificar estilos, etc.) abrid el archivo con un editor de texto
-y subidlo de nuevo a Netlify arrastrándolo.
-
-Para no tener que meter el BIN ID y MASTER KEY cada vez que cambiéis de PC,
-podéis pegarlos directamente en el código en estas dos líneas:
-
-```js
-const HARDCODED_BIN_ID = '';      // pega aquí
-const HARDCODED_MASTER_KEY = '';  // pega aquí
-```
-
-(Pero si haces eso, no subas el archivo a sitios públicos como GitHub porque
-quien tenga la Master Key puede leer/escribir en vuestro bin.)
+El archivo es `index.html` solo. Para modificarlo, lo editas y haces commit
+en este repo. GitHub Pages publica los cambios automáticamente en 1-2 minutos.
