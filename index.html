@@ -9,39 +9,39 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
 <style>
   :root {
-    --bg: #f4efe6;
-    --bg-2: #ede6d8;
-    --bg-3: #fdf9f1;
-    --bg-4: #e5dcc9;
-    --border: #d6cab2;
-    --border-2: #c4b896;
-    --border-h: #a89c7a;
-    --ink: #1a2540;
-    --ink-2: #4a5570;
-    --ink-3: #7a8298;
-    --ink-4: #a8aebd;
-    --brand: #5a7a3e;
-    --brand-2: #6f924f;
-    --brand-dim: #3e5527;
-    --good: #5a7a3e;
-    --good-bg: rgba(90, 122, 62, 0.12);
-    --bad: #c2410c;
-    --bad-bg: rgba(194, 65, 12, 0.10);
-    --warn: #b45309;
-    --warn-bg: rgba(180, 83, 9, 0.10);
-    --info: #1e40af;
-    --info-bg: rgba(30, 64, 175, 0.10);
-    --purple: #6b21a8;
-    --purple-bg: rgba(107, 33, 168, 0.10);
-    --accent-coral: #c2410c;
-    --accent-coral-bg: rgba(194, 65, 12, 0.10);
+    --bg: #0d1421;
+    --bg-2: #131d2e;
+    --bg-3: #1a2538;
+    --bg-4: #243149;
+    --border: #2a3a55;
+    --border-2: #3a4d6b;
+    --border-h: #4f6588;
+    --ink: #e8ecf3;
+    --ink-2: #b4bccc;
+    --ink-3: #7e8aa1;
+    --ink-4: #56627a;
+    --brand: #d4a44a;
+    --brand-2: #e6bc63;
+    --brand-dim: #7a5d20;
+    --good: #4ade80;
+    --good-bg: rgba(74, 222, 128, 0.10);
+    --bad: #f87171;
+    --bad-bg: rgba(248, 113, 113, 0.10);
+    --warn: #fbbf24;
+    --warn-bg: rgba(251, 191, 36, 0.10);
+    --info: #60a5fa;
+    --info-bg: rgba(96, 165, 250, 0.10);
+    --purple: #c4b5fd;
+    --purple-bg: rgba(196, 181, 253, 0.10);
+    --accent-coral: #fb923c;
+    --accent-coral-bg: rgba(251, 146, 60, 0.10);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { background: var(--bg); color: var(--ink); font-family: 'Inter', -apple-system, sans-serif; min-height: 100vh; -webkit-font-smoothing: antialiased; }
   body {
     background-image:
-      radial-gradient(circle at 0% 0%, rgba(90, 122, 62, 0.04) 0%, transparent 50%),
-      radial-gradient(circle at 100% 100%, rgba(194, 65, 12, 0.04) 0%, transparent 50%);
+      radial-gradient(circle at 0% 0%, rgba(212, 164, 74, 0.06) 0%, transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(96, 165, 250, 0.05) 0%, transparent 50%);
     background-attachment: fixed;
   }
 
@@ -77,7 +77,7 @@
     background: var(--brand);
     border-radius: 8px;
     display: flex; align-items: center; justify-content: center;
-    color: #fdf9f1; font-weight: 700; font-size: 16px;
+    color: #0d1421; font-weight: 700; font-size: 16px;
   }
   .brand small { color: var(--ink-3); font-weight: 400; font-size: 12px; letter-spacing: 0; }
 
@@ -115,7 +115,7 @@
   .btn:hover { background: var(--bg-4); border-color: var(--border-h); }
   .btn-primary {
     background: var(--brand);
-    color: #fdf9f1;
+    color: #0d1421;
     border-color: var(--brand);
     font-weight: 600;
   }
@@ -207,9 +207,9 @@
     transition: all 0.15s;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 1px 2px rgba(26, 37, 64, 0.04);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   }
-  .card:hover { border-color: var(--border-h); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26, 37, 64, 0.08); }
+  .card:hover { border-color: var(--border-h); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3); }
   .card.dragging { opacity: 0.4; cursor: grabbing; }
   .card::before {
     content: '';
@@ -285,18 +285,18 @@
   .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(26, 37, 64, 0.4);
+    background: rgba(0, 0, 0, 0.65);
     display: none;
     align-items: flex-start;
     justify-content: center;
     padding: 20px;
     z-index: 100;
     overflow-y: auto;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(6px);
   }
   .modal-overlay.show { display: flex; }
   .modal {
-    background: var(--bg-3);
+    background: var(--bg-2);
     border: 1px solid var(--border);
     border-radius: 16px;
     width: 100%;
@@ -304,7 +304,7 @@
     margin: 20px 0;
     overflow: hidden;
     animation: modalin 0.2s;
-    box-shadow: 0 20px 60px -20px rgba(26, 37, 64, 0.25);
+    box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.6);
   }
   @keyframes modalin { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
   .modal-head {
@@ -393,7 +393,7 @@
   }
   .field label .req { color: var(--bad); }
   .field input, .field select, .field textarea {
-    background: #fffdf7;
+    background: var(--bg);
     border: 1px solid var(--border);
     color: var(--ink);
     padding: 9px 12px;
@@ -414,7 +414,7 @@
     border: 1px solid var(--border);
     border-radius: 10px;
     overflow: hidden;
-    background: #fffdf7;
+    background: var(--bg);
   }
   .row {
     display: flex;
@@ -475,7 +475,7 @@
     flex-wrap: wrap;
   }
   .add-row input, .add-row select {
-    background: #fffdf7;
+    background: var(--bg);
     border: 1px solid var(--border);
     color: var(--ink);
     padding: 8px 10px;
@@ -555,7 +555,7 @@
     border-top: 1px solid var(--border);
   }
   .status-actions select {
-    background: #fffdf7;
+    background: var(--bg);
     border: 1px solid var(--border);
     color: var(--ink);
     padding: 7px 12px;
@@ -597,7 +597,7 @@
     font-family: 'JetBrains Mono', monospace;
     font-size: 12px;
     color: var(--ink-2);
-    background: #fffdf7;
+    background: var(--bg);
     border: 1px solid var(--border);
     padding: 6px 10px;
     border-radius: 8px;
@@ -651,7 +651,7 @@
 
   /* ============ TECNICAS ============ */
   .tech-card {
-    background: #fffdf7;
+    background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 14px 16px;
