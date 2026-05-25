@@ -744,6 +744,7 @@
     </div>
     <div class="modal-tabs" id="ficha-tabs">
       <button class="active" data-ftab="datos">📝 Datos</button>
+      <button data-ftab="ia">✨ IA</button>
       <button data-ftab="materiales">🔧 Materiales <span class="badge" id="badge-mat">0</span></button>
       <button data-ftab="trabajos">✓ Trabajos <span class="badge" id="badge-trab">0</span></button>
       <button data-ftab="presupuesto">💰 Presupuesto</button>
@@ -833,7 +834,28 @@
         </div>
       </div>
 
-      <!-- TAB MATERIALES -->
+      <!-- TAB IA -->
+      <div class="ftab-content" id="ftab-ia" style="display:none">
+        <div class="ficha-section">
+          <div class="ficha-section-title">✨ Auto-rellenar ficha con IA</div>
+          <p style="font-size: 13px; color: var(--ink-2); margin-bottom: 14px; line-height: 1.5;">
+            Pega aquí lo que tengas: mensaje de WhatsApp del cliente, conversación, notas a mano transcritas, datos sueltos, lo que sea. La IA leerá el texto y rellenará automáticamente todos los campos: coche, propietario, materiales con precios, trabajos a hacer y notas técnicas.
+          </p>
+          <div class="field">
+            <label>Texto en bruto</label>
+            <textarea id="ia-input" placeholder="Ejemplo:&#10;&#10;Cliente: Juan Pérez, 600 123 456&#10;Trae un Daewoo Kalos del 2003, matrícula 1236 CZJ, motor 1.6 gasolina 8 válvulas&#10;180.000 km&#10;&#10;Hay que hacerle la distribución completa, junta de cárter, retén cigüeñal, aceite y filtro, escobillas, bombillas, neumáticos 185/60 R14 y borrado de fallos&#10;&#10;Materiales pedidos a Gaudí: 240,98 € (correa Bosch 71,88 €, aceite 43,18 €, silicona 22,16 €, filtro 6,49 €, etc.)&#10;Neumáticos AUTODOC: 163,96 €" style="min-height: 200px; font-family: 'JetBrains Mono', monospace; font-size: 12px;"></textarea>
+          </div>
+          <div style="display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; align-items: center;">
+            <button class="btn btn-primary" id="ia-run">✨ Rellenar con IA</button>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2);">
+              <input type="checkbox" id="ia-mode-merge" checked>
+              Conservar lo que ya esté escrito (solo añadir lo que falta)
+            </label>
+          </div>
+          <div id="ia-status" style="margin-top: 14px; font-size: 13px; display: none;"></div>
+          <div id="ia-preview" style="margin-top: 14px; display: none;"></div>
+        </div>
+      </div>
       <div class="ftab-content" id="ftab-materiales" style="display:none">
         <div class="modal-stats">
           <div class="mstat"><div class="label">Total materiales</div><div class="value accent" id="mat-total">0 €</div></div>
@@ -941,6 +963,90 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const cochesRef = db.ref('coches_v2');
+
+// ============================================================
+// GEMINI API
+// ============================================================
+const GEMINI_API_KEY = "AIzaSyArk03e1ro2fOZzcFCObH1nm3ouviTdxJk";
+const GEMINI_MODEL = "gemini-2.0-flash";
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+
+const IA_SYSTEM_PROMPT = `Eres un asistente experto de un taller mecánico. Tu trabajo es leer texto en bruto (mensajes de WhatsApp, notas, listas) sobre un coche que entra al taller y extraer TODA la información estructurada posible para rellenar una ficha.
+
+Devuelve SIEMPRE y SOLO un objeto JSON válido (sin markdown, sin \`\`\`, sin explicaciones, solo el JSON puro) con estos campos exactos:
+
+{
+  "marca": "string o vacío",
+  "modelo": "string o vacío",
+  "matricula": "string o vacío (formato español: 1234 ABC)",
+  "anio": "string o vacío (solo año, ej 2003)",
+  "motor": "string o vacío (ej '1.6 8v SOHC')",
+  "km": "string o vacío (solo números, sin puntos ni 'km')",
+  "color": "string o vacío",
+  "vin": "string o vacío",
+  "fechaItv": "string o vacío (YYYY-MM-DD)",
+  "ultRevision": "string o vacío (YYYY-MM-DD)",
+  "propNombre": "string o vacío (nombre completo)",
+  "propTel": "string o vacío (formato 'XXX XXX XXX')",
+  "propDni": "string o vacío",
+  "propEmail": "string o vacío",
+  "propDireccion": "string o vacío",
+  "notas": "string o vacío (resumen útil para el mecánico, observaciones del cliente)",
+  "tecnica": "string o vacío (notas técnicas si las hay: calados, pares, procedimientos)",
+  "materiales": [
+    { "name": "string", "price": número, "cat": "motor|distribucion|electrico|neumaticos|otros" }
+  ],
+  "trabajos": [
+    { "name": "string" }
+  ],
+  "precio": número o 0 (precio que se cobrará al cliente si se menciona)
+}
+
+REGLAS IMPORTANTES:
+- Si un dato NO está en el texto, déjalo VACÍO (string vacío "" o array vacío []). NO inventes.
+- Para "materiales" extrae cada item con su precio en euros. Si el texto da un total agrupado, divídelo SOLO si está claramente desglosado.
+- Categorías de materiales:
+  * "motor": aceite, filtros, juntas, retenes, silicona, bujías, tornillos, soportes motor, bomba agua
+  * "distribucion": correas (distribución, auxiliar, micro-V), tensores, kits distribución
+  * "electrico": bombillas, escobillas, fusibles, baterías, sensores, borrado fallos OBD
+  * "neumaticos": neumáticos, llantas, válvulas
+  * "otros": todo lo demás
+- Para "trabajos" lista las tareas a realizar (no los materiales). Ejemplos: "Distribución completa", "Cambio aceite y filtro", "Junta de cárter".
+- Para "matricula" detecta tanto formato nuevo (1234 ABC) como antiguo (B-1234-XY).
+- Si el motor menciona "SOHC", "DOHC", "8v", "16v", inclúyelo.
+- "notas" es texto libre con info útil del cliente o estado del coche.
+
+Devuelve SOLO el JSON, nada más.`;
+
+async function llamarGemini(textoUsuario) {
+  const body = {
+    contents: [{
+      role: "user",
+      parts: [{ text: textoUsuario }]
+    }],
+    systemInstruction: {
+      parts: [{ text: IA_SYSTEM_PROMPT }]
+    },
+    generationConfig: {
+      temperature: 0.1,
+      responseMimeType: "application/json"
+    }
+  };
+  const r = await fetch(GEMINI_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) {
+    const errTxt = await r.text();
+    throw new Error('Gemini HTTP ' + r.status + ': ' + errTxt.slice(0, 200));
+  }
+  const data = await r.json();
+  const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  // Limpieza por si acaso devuelve con ```json
+  const clean = txt.replace(/^```json\s*/i, '').replace(/```$/, '').trim();
+  return JSON.parse(clean);
+}
 
 // ============================================================
 // STATE
@@ -1557,6 +1663,164 @@ function escapeHtml(s) {
   d.textContent = String(s);
   return d.innerHTML;
 }
+
+// ============================================================
+// IA · RELLENAR FICHA
+// ============================================================
+function setIaStatus(text, kind) {
+  const el = document.getElementById('ia-status');
+  if (!el) return;
+  el.style.display = text ? 'block' : 'none';
+  if (!text) { el.innerHTML = ''; return; }
+  const colors = {
+    info: 'var(--info)',
+    good: 'var(--good)',
+    bad: 'var(--bad)',
+    loading: 'var(--brand)'
+  };
+  const icons = { info: 'ℹ', good: '✓', bad: '⚠', loading: '⏳' };
+  el.style.color = colors[kind] || 'var(--ink-2)';
+  el.innerHTML = `<span style="margin-right:6px">${icons[kind] || ''}</span>${text}`;
+}
+
+function aplicarDatosIA(c, ia, soloRellenarVacios) {
+  const keep = (existing, nuevo) => {
+    if (!nuevo) return existing;
+    if (soloRellenarVacios && existing && existing.toString().trim()) return existing;
+    return nuevo;
+  };
+  
+  // Campos de texto
+  ['marca','modelo','matricula','anio','motor','km','color','vin','fechaItv','ultRevision',
+   'propNombre','propTel','propDni','propEmail','propDireccion','notas','tecnica'].forEach(k => {
+    if (ia[k] !== undefined && ia[k] !== null) {
+      c[k] = keep(c[k], ia[k]);
+    }
+  });
+  
+  // Precio
+  if (typeof ia.precio === 'number' && ia.precio > 0) {
+    if (!soloRellenarVacios || !c.precio) c.precio = ia.precio;
+  }
+  
+  // Materiales: añadir los nuevos (no machacar los que ya están)
+  if (Array.isArray(ia.materiales) && ia.materiales.length > 0) {
+    if (!c.materiales) c.materiales = [];
+    const maxId = c.materiales.reduce((m, x) => Math.max(m, x.id || 0), 0);
+    let next = maxId + 1;
+    ia.materiales.forEach(m => {
+      if (!m || !m.name) return;
+      // Evitar duplicados por nombre
+      const dup = c.materiales.some(x => x.name && x.name.toLowerCase().trim() === m.name.toLowerCase().trim());
+      if (dup && soloRellenarVacios) return;
+      c.materiales.push({
+        id: next++,
+        name: m.name,
+        price: typeof m.price === 'number' ? m.price : 0,
+        cat: ['motor','distribucion','electrico','neumaticos','otros'].includes(m.cat) ? m.cat : 'otros',
+        active: true
+      });
+    });
+  }
+  
+  // Trabajos
+  if (Array.isArray(ia.trabajos) && ia.trabajos.length > 0) {
+    if (!c.trabajos) c.trabajos = [];
+    const maxId = c.trabajos.reduce((m, x) => Math.max(m, x.id || 0), 0);
+    let next = maxId + 1;
+    ia.trabajos.forEach(t => {
+      if (!t || !t.name) return;
+      const dup = c.trabajos.some(x => x.name && x.name.toLowerCase().trim() === t.name.toLowerCase().trim());
+      if (dup && soloRellenarVacios) return;
+      c.trabajos.push({ id: next++, name: t.name, done: false });
+    });
+  }
+}
+
+function camposRellenados(ia) {
+  let n = 0;
+  ['marca','modelo','matricula','anio','motor','km','color','vin','fechaItv','ultRevision',
+   'propNombre','propTel','propDni','propEmail','propDireccion','notas','tecnica'].forEach(k => {
+    if (ia[k] && ia[k].toString().trim()) n++;
+  });
+  if (Array.isArray(ia.materiales)) n += ia.materiales.length;
+  if (Array.isArray(ia.trabajos)) n += ia.trabajos.length;
+  return n;
+}
+
+document.getElementById('ia-run').addEventListener('click', async () => {
+  if (!currentId) return;
+  const input = document.getElementById('ia-input').value.trim();
+  if (!input) {
+    setIaStatus('Pega algo de texto primero.', 'bad');
+    return;
+  }
+  if (input.length < 15) {
+    setIaStatus('El texto es demasiado corto, dame más información.', 'bad');
+    return;
+  }
+  
+  const btn = document.getElementById('ia-run');
+  btn.disabled = true;
+  btn.textContent = '⏳ Procesando...';
+  setIaStatus('Analizando texto con IA... esto puede tardar 5-15 segundos.', 'loading');
+  document.getElementById('ia-preview').style.display = 'none';
+  
+  try {
+    // Primero recopilamos los datos del form por si el usuario escribió antes
+    recopilarDatos();
+    
+    const ia = await llamarGemini(input);
+    const soloRellenarVacios = document.getElementById('ia-mode-merge').checked;
+    
+    aplicarDatosIA(coches[currentId], ia, soloRellenarVacios);
+    
+    // Refrescar todos los campos del formulario con los nuevos datos
+    const c = coches[currentId];
+    document.getElementById('f-marca').value = c.marca || '';
+    document.getElementById('f-modelo').value = c.modelo || '';
+    document.getElementById('f-matricula').value = c.matricula || '';
+    document.getElementById('f-anio').value = c.anio || '';
+    document.getElementById('f-motor').value = c.motor || '';
+    document.getElementById('f-km').value = c.km || '';
+    document.getElementById('f-color').value = c.color || '';
+    document.getElementById('f-vin').value = c.vin || '';
+    document.getElementById('f-fecha-itv').value = c.fechaItv || '';
+    document.getElementById('f-ult-revision').value = c.ultRevision || '';
+    document.getElementById('f-prop-nombre').value = c.propNombre || '';
+    document.getElementById('f-prop-tel').value = c.propTel || '';
+    document.getElementById('f-prop-dni').value = c.propDni || '';
+    document.getElementById('f-prop-email').value = c.propEmail || '';
+    document.getElementById('f-prop-direccion').value = c.propDireccion || '';
+    document.getElementById('f-notas').value = c.notas || '';
+    document.getElementById('f-tecnica').value = c.tecnica || '';
+    
+    // Guardar en Firebase
+    await saveCoche(c);
+    
+    const n = camposRellenados(ia);
+    setIaStatus(`Listo. La IA ha extraído ${n} datos del texto. Revisa las pestañas y guarda.`, 'good');
+    
+    // Mostrar resumen visual
+    const prev = document.getElementById('ia-preview');
+    prev.style.display = 'block';
+    prev.innerHTML = `
+      <div style="background: var(--bg-3); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font-size: 12px;">
+        <div style="font-weight: 600; color: var(--brand); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-size: 11px;">Extraído por la IA</div>
+        ${ia.marca || ia.modelo ? `<div>🚗 <b>Coche:</b> ${escapeHtml([ia.marca, ia.modelo, ia.matricula].filter(Boolean).join(' · '))}</div>` : ''}
+        ${ia.propNombre || ia.propTel ? `<div>👤 <b>Propietario:</b> ${escapeHtml([ia.propNombre, ia.propTel].filter(Boolean).join(' · '))}</div>` : ''}
+        ${Array.isArray(ia.materiales) && ia.materiales.length > 0 ? `<div>🔧 <b>${ia.materiales.length} materiales</b> añadidos</div>` : ''}
+        ${Array.isArray(ia.trabajos) && ia.trabajos.length > 0 ? `<div>✓ <b>${ia.trabajos.length} trabajos</b> añadidos</div>` : ''}
+      </div>
+    `;
+  } catch (e) {
+    console.error('IA error:', e);
+    setIaStatus('Error al llamar a la IA: ' + e.message, 'bad');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ Rellenar con IA';
+  }
+});
 
 // ============================================================
 // INIT
