@@ -644,33 +644,28 @@
   Datos sincronizados entre dispositivos · Refresca para actualizar
 </footer>
 
-<!-- SETUP DIALOG -->
-<div class="setup-overlay" id="setup-overlay">
-  <div class="setup-box">
-    <h2>Configuración inicial</h2>
-    <p>Para que tú y tu compañero veáis los mismos datos, necesitáis un <strong>"Bin ID" de npoint.io</strong> (gratis, sin registro).</p>
-    <p><strong>Pasos rápidos (solo lo hace UNO de los dos, una vez):</strong></p>
-    <p style="font-size: 13px;">
-      1. Abre <a href="https://www.npoint.io/" target="_blank">npoint.io</a> en otra pestaña.<br>
-      2. Pulsa el botón <strong>"Create"</strong> (azul, arriba).<br>
-      3. Te lleva a un editor con un JSON de ejemplo. Bórralo y deja <code>{}</code>.<br>
-      4. Pulsa <strong>"Save"</strong> arriba a la derecha.<br>
-      5. Mira la URL: será <code>npoint.io/docs/<strong>abc123def456</strong></code> — copia esa parte final.<br>
-      6. Pega el código abajo y pásaselo a tu compañero por WhatsApp.
-    </p>
-    <input type="text" id="setup-bin" placeholder="Bin ID de npoint (ej. abc123def456)">
-    <div class="btn-row">
-      <button class="secondary" id="setup-skip">Solo local</button>
-      <button id="setup-save">Conectar</button>
-    </div>
-  </div>
-</div>
+<!-- Firebase SDK (compat para usar sin módulos) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <script>
 // ============================================================
-// CONFIG: ajusta esta línea para no pedir setup cada vez
+// CONFIG FIREBASE
 // ============================================================
-const HARDCODED_BIN_ID = '';  // pega aquí tu BIN_ID de npoint si quieres
+const firebaseConfig = {
+  apiKey: "AIzaSyBp4TSqrIhxxzCLdw3SxiJ6iq2eh7DKw9g",
+  authDomain: "kalos-taller.firebaseapp.com",
+  databaseURL: "https://kalos-taller-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "kalos-taller",
+  storageBucket: "kalos-taller.firebasestorage.app",
+  messagingSenderId: "232322928370",
+  appId: "1:232322928370:web:c80768132c751d4c8c4a6b"
+};
+
+// Inicializar Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const dbRef = db.ref('kalos');
 
 // Default data
 const DEFAULT_MATERIALES = [
@@ -705,32 +700,30 @@ const DEFAULT_TRABAJOS = [
   { id: 11, name: 'Llevar a ITV', done: false }
 ];
 
-const LS_KEY = 'kalos-itv-data-v1';
-const LS_CONFIG = 'kalos-itv-config-v2';
+const LS_KEY = 'kalos-itv-data-v3';
 
 let state = {
   materiales: [...DEFAULT_MATERIALES],
   trabajos: [...DEFAULT_TRABAJOS],
   precio: 650,
-  split: 50,
-  _version: 0
+  split: 50
 };
 
-let config = { binId: '' };
 let saveTimer = null;
-let lastRemoteVersion = -1;
+let isApplyingRemote = false; // evita bucles cuando aplicamos cambios remotos
 
 // ===== Sync UI =====
-function setSyncStatus(state, text) {
+function setSyncStatus(st, text) {
   const pill = document.getElementById('sync-pill');
   const txt = document.getElementById('sync-text');
+  if (!pill || !txt) return;
   pill.classList.remove('error', 'saving');
-  if (state === 'error') pill.classList.add('error');
-  if (state === 'saving') pill.classList.add('saving');
+  if (st === 'error') pill.classList.add('error');
+  if (st === 'saving') pill.classList.add('saving');
   txt.textContent = text;
 }
 
-// ===== Storage =====
+// ===== Cache local =====
 function saveLocal() {
   try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e) {}
 }
@@ -743,81 +736,59 @@ function loadLocal() {
       if (parsed.trabajos) state.trabajos = parsed.trabajos;
       if (typeof parsed.precio === 'number') state.precio = parsed.precio;
       if (typeof parsed.split === 'number') state.split = parsed.split;
-      if (typeof parsed._version === 'number') state._version = parsed._version;
     }
   } catch(e) {}
 }
 
+// ===== Firebase =====
 async function saveRemote() {
-  if (!config.binId) return;
+  if (isApplyingRemote) return; // no guardes si lo que cambió vino del remoto
   setSyncStatus('saving', 'Guardando...');
   try {
-    state._version = Date.now();
-    const r = await fetch(`https://api.npoint.io/${config.binId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(state)
+    await dbRef.set({
+      materiales: state.materiales,
+      trabajos: state.trabajos,
+      precio: state.precio,
+      split: state.split,
+      updatedAt: Date.now()
     });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    lastRemoteVersion = state._version;
     setSyncStatus('ok', 'Sincronizado');
   } catch(e) {
-    console.error(e);
-    setSyncStatus('error', 'Error sync');
-  }
-}
-
-async function loadRemote() {
-  if (!config.binId) return false;
-  setSyncStatus('saving', 'Cargando...');
-  try {
-    const r = await fetch(`https://api.npoint.io/${config.binId}`);
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const remote = await r.json();
-    if (remote && remote.materiales) {
-      const remoteVer = remote._version || 0;
-      const localVer = state._version || 0;
-      if (remoteVer >= localVer) {
-        state = { ...state, ...remote };
-        lastRemoteVersion = remoteVer;
-        saveLocal();
-      }
-    } else {
-      // Bin vacío → subimos nuestro estado
-      await saveRemote();
-    }
-    setSyncStatus('ok', 'Sincronizado');
-    return true;
-  } catch(e) {
-    console.error(e);
-    setSyncStatus('error', 'Sin conexión');
-    return false;
+    console.error('Firebase save error:', e);
+    setSyncStatus('error', 'Error guardando');
   }
 }
 
 function queueSave() {
   saveLocal();
   if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveRemote, 800);
+  saveTimer = setTimeout(saveRemote, 400);
 }
 
-// Auto-refresh desde el remoto cada 15s
-async function pollRemote() {
-  if (!config.binId) return;
-  try {
-    const r = await fetch(`https://api.npoint.io/${config.binId}`);
-    if (!r.ok) return;
-    const remote = await r.json();
-    const remoteVer = remote._version || 0;
-    if (remoteVer > lastRemoteVersion && remoteVer > (state._version || 0)) {
-      state = { ...state, ...remote };
-      lastRemoteVersion = remoteVer;
+function startRealtimeSync() {
+  // Listener en tiempo real: cada vez que CUALQUIERA cambia algo, nos llega
+  dbRef.on('value', snapshot => {
+    const remote = snapshot.val();
+    if (remote && remote.materiales) {
+      isApplyingRemote = true;
+      state.materiales = remote.materiales || state.materiales;
+      state.trabajos = remote.trabajos || state.trabajos;
+      if (typeof remote.precio === 'number') state.precio = remote.precio;
+      if (typeof remote.split === 'number') state.split = remote.split;
       saveLocal();
       render();
-      setSyncStatus('ok', 'Actualizado ↓');
-      setTimeout(() => setSyncStatus('ok', 'Sincronizado'), 1500);
+      setSyncStatus('ok', 'Sincronizado');
+      // pequeño delay para evitar que el siguiente change dispare un save
+      setTimeout(() => { isApplyingRemote = false; }, 100);
+    } else {
+      // Base de datos vacía → subir defaults
+      isApplyingRemote = false;
+      saveRemote();
     }
-  } catch(e) {}
+  }, err => {
+    console.error('Firebase listener error:', err);
+    setSyncStatus('error', 'Sin conexión');
+  });
 }
 
 // ===== Render =====
@@ -979,65 +950,12 @@ document.getElementById('add-trab-btn').addEventListener('click', () => {
   render(); queueSave();
 });
 
-// ===== Setup dialog =====
-function loadConfig() {
-  if (HARDCODED_BIN_ID) {
-    config.binId = HARDCODED_BIN_ID;
-    return true;
-  }
-  try {
-    const raw = localStorage.getItem(LS_CONFIG);
-    if (raw) {
-      const c = JSON.parse(raw);
-      if (c.binId) {
-        config = c;
-        return true;
-      }
-    }
-  } catch(e) {}
-  return false;
-}
-function saveConfig() {
-  localStorage.setItem(LS_CONFIG, JSON.stringify(config));
-}
-
-document.getElementById('setup-save').addEventListener('click', async () => {
-  const bin = document.getElementById('setup-bin').value.trim();
-  if (!bin) {
-    alert('Necesitas pegar el Bin ID de npoint.');
-    return;
-  }
-  // Si el usuario pegó una URL completa, extraemos solo el ID
-  const match = bin.match(/([a-f0-9]{16,})/i);
-  config.binId = match ? match[1] : bin;
-  saveConfig();
-  document.getElementById('setup-overlay').classList.remove('show');
-  await loadRemote();
-  render();
-  startPolling();
-});
-document.getElementById('setup-skip').addEventListener('click', () => {
-  document.getElementById('setup-overlay').classList.remove('show');
-  setSyncStatus('error', 'Solo local');
-});
-
-function startPolling() {
-  setInterval(pollRemote, 15000);
-}
-
 // ===== Init =====
-async function init() {
+function init() {
   loadLocal();
-  const hasConfig = loadConfig();
   render();
-  if (hasConfig) {
-    await loadRemote();
-    render();
-    startPolling();
-  } else {
-    document.getElementById('setup-overlay').classList.add('show');
-    setSyncStatus('error', 'Sin configurar');
-  }
+  setSyncStatus('saving', 'Conectando...');
+  startRealtimeSync();
 }
 
 init();
