@@ -3,296 +3,508 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Taller · Kalos 1236 CZJ</title>
+<title>Taller CRM · Gestión de coches</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
 <style>
   :root {
-    --bg: #0f0f0e;
-    --bg-card: #1a1a18;
-    --bg-elev: #232320;
-    --border: #2e2e2a;
-    --border-strong: #45453f;
-    --ink: #f4f1e8;
-    --ink-dim: #a8a59c;
-    --ink-faint: #6e6b62;
-    --accent: #ffb800;
-    --accent-dim: #8a6500;
-    --good: #7ec268;
-    --bad: #e8553d;
-    --warn: #d49b3e;
-    --line: #2a2a26;
+    --bg: #0a0a0b;
+    --bg-2: #131316;
+    --bg-3: #1c1c20;
+    --bg-4: #25252b;
+    --border: #2a2a30;
+    --border-2: #383841;
+    --border-h: #4a4a55;
+    --ink: #f0f0f2;
+    --ink-2: #b8b8c0;
+    --ink-3: #7a7a85;
+    --ink-4: #50505a;
+    --brand: #f59e0b;
+    --brand-2: #fbbf24;
+    --brand-dim: #78350f;
+    --good: #10b981;
+    --good-bg: rgba(16, 185, 129, 0.12);
+    --bad: #ef4444;
+    --bad-bg: rgba(239, 68, 68, 0.12);
+    --warn: #eab308;
+    --warn-bg: rgba(234, 179, 8, 0.12);
+    --info: #3b82f6;
+    --info-bg: rgba(59, 130, 246, 0.12);
+    --purple: #a78bfa;
+    --purple-bg: rgba(167, 139, 250, 0.12);
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { background: var(--bg); color: var(--ink); font-family: 'Inter', sans-serif; min-height: 100vh; -webkit-font-smoothing: antialiased; }
-  body {
-    background-image:
-      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,184,0,0.025) 39px, rgba(255,184,0,0.025) 40px),
-      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,184,0,0.025) 39px, rgba(255,184,0,0.025) 40px);
-  }
+  html, body { background: var(--bg); color: var(--ink); font-family: 'Inter', -apple-system, sans-serif; min-height: 100vh; -webkit-font-smoothing: antialiased; }
 
-  /* HEADER */
-  header.banner {
-    background: var(--accent);
-    color: #000;
-    padding: 14px 20px;
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 5px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-h); }
+
+  /* ============ TOPBAR ============ */
+  .topbar {
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    height: 56px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    border-bottom: 4px solid #000;
-    flex-wrap: wrap;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(10px);
+  }
+  .brand {
+    display: flex;
+    align-items: center;
     gap: 10px;
-  }
-  header.banner .logo {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 28px;
-    letter-spacing: 2px;
-    line-height: 1;
-  }
-  header.banner .matricula {
-    font-family: 'JetBrains Mono', monospace;
     font-weight: 700;
-    font-size: 14px;
-    background: #000;
-    color: var(--accent);
-    padding: 6px 12px;
-    letter-spacing: 2px;
+    font-size: 15px;
+    letter-spacing: -0.2px;
   }
-  header.banner .sync-pill {
+  .brand-logo {
+    width: 30px; height: 30px;
+    background: var(--brand);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: #000; font-weight: 700; font-size: 16px;
+  }
+  .brand small { color: var(--ink-3); font-weight: 400; font-size: 12px; letter-spacing: 0; }
+
+  .top-actions { display: flex; align-items: center; gap: 10px; }
+  .sync-pill {
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
-    background: #000;
-    color: var(--accent);
-    padding: 6px 10px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    color: var(--ink-3);
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 10px;
+    background: var(--bg-3);
+    border-radius: 100px;
+    border: 1px solid var(--border);
   }
-  .sync-pill.error { color: var(--bad); }
-  .sync-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); }
+  .sync-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--good); }
   .sync-pill.error .dot { background: var(--bad); }
   .sync-pill.saving .dot { background: var(--warn); animation: pulse 1s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-  /* VEHICLE BAR */
-  .vehicle-bar {
-    background: var(--bg-card);
+  .btn {
+    background: var(--bg-3);
+    color: var(--ink);
+    border: 1px solid var(--border-2);
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+  }
+  .btn:hover { background: var(--bg-4); border-color: var(--border-h); }
+  .btn-primary {
+    background: var(--brand);
+    color: #000;
+    border-color: var(--brand);
+    font-weight: 600;
+  }
+  .btn-primary:hover { background: var(--brand-2); border-color: var(--brand-2); }
+  .btn-danger { color: var(--bad); border-color: var(--bad-bg); }
+  .btn-danger:hover { background: var(--bad-bg); }
+  .btn-ghost { background: transparent; border-color: transparent; }
+  .btn-ghost:hover { background: var(--bg-3); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-icon { padding: 6px 8px; }
+
+  /* ============ KANBAN VIEW ============ */
+  .kanban-wrap {
+    padding: 20px;
+    overflow-x: auto;
+  }
+  .kanban {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(280px, 1fr));
+    gap: 16px;
+    min-width: 1100px;
+  }
+  .col {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    min-height: 200px;
+    max-height: calc(100vh - 120px);
+  }
+  .col-head {
+    padding: 14px 16px;
     border-bottom: 1px solid var(--border);
-    padding: 16px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
   }
-  .vehicle-bar .titulo {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 24px;
-    letter-spacing: 1.5px;
-    line-height: 1;
-  }
-  .vehicle-bar .subtit {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    color: var(--ink-dim);
+  .col-title {
+    font-size: 13px;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
-    margin-top: 4px;
+    letter-spacing: 0.5px;
+    color: var(--ink-2);
+    display: flex; align-items: center; gap: 8px;
   }
-  .stamp {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 16px;
-    border: 2px solid var(--accent);
-    color: var(--accent);
-    padding: 6px 14px;
-    letter-spacing: 2px;
-    transform: rotate(-2deg);
+  .col-title .dot-color { width: 8px; height: 8px; border-radius: 50%; }
+  .col-pendiente .dot-color { background: var(--ink-3); }
+  .col-confirmado .dot-color { background: var(--info); }
+  .col-encurso .dot-color { background: var(--brand); }
+  .col-terminado .dot-color { background: var(--good); }
+  .col-count {
+    background: var(--bg-3);
+    color: var(--ink-2);
+    border-radius: 100px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
   }
-
-  /* TABS */
-  nav.tabs {
-    background: var(--bg);
-    border-bottom: 1px solid var(--border);
+  .col-body {
+    padding: 10px;
+    flex: 1;
+    overflow-y: auto;
     display: flex;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding: 0 8px;
-  }
-  nav.tabs::-webkit-scrollbar { display: none; }
-  nav.tabs button {
-    background: transparent;
-    border: none;
-    color: var(--ink-faint);
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 16px;
-    letter-spacing: 1.5px;
-    padding: 14px 18px;
-    cursor: pointer;
-    border-bottom: 3px solid transparent;
-    transition: all 0.15s;
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 8px;
   }
-  nav.tabs button:hover { color: var(--ink); }
-  nav.tabs button.active {
-    color: var(--accent);
-    border-bottom-color: var(--accent);
+  .col-body.drag-over {
+    background: rgba(245, 158, 11, 0.05);
+    border-radius: 0 0 12px 12px;
   }
-  nav.tabs button svg { width: 16px; height: 16px; }
+  .col-empty {
+    text-align: center;
+    color: var(--ink-4);
+    font-size: 12px;
+    padding: 30px 10px;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+  }
 
-  /* MAIN */
-  main { padding: 20px; max-width: 1100px; margin: 0 auto; }
-  .tab-content { display: none; animation: fadein 0.2s; }
-  .tab-content.active { display: block; }
-  @keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-
-  /* CARDS */
+  /* ============ CARD ============ */
   .card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    margin-bottom: 16px;
+    background: var(--bg-3);
+    border: 1px solid var(--border-2);
+    border-radius: 10px;
+    padding: 12px;
+    cursor: grab;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
   }
-  .card-head {
-    padding: 12px 16px;
+  .card:hover { border-color: var(--border-h); transform: translateY(-1px); }
+  .card.dragging { opacity: 0.4; cursor: grabbing; }
+  .card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--brand);
+  }
+  .card[data-status="pendiente"]::before { background: var(--ink-3); }
+  .card[data-status="confirmado"]::before { background: var(--info); }
+  .card[data-status="encurso"]::before { background: var(--brand); }
+  .card[data-status="terminado"]::before { background: var(--good); }
+  .card-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+    color: var(--ink);
+    line-height: 1.3;
+  }
+  .card-sub {
+    font-size: 12px;
+    color: var(--ink-3);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+  }
+  .card-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 11px;
+    color: var(--ink-3);
+  }
+  .card-meta-item {
+    display: flex; align-items: center; gap: 4px;
+    background: var(--bg-2);
+    padding: 3px 7px;
+    border-radius: 6px;
+  }
+  .card-progress {
+    margin-top: 10px;
+    height: 4px;
+    background: var(--bg-2);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .card-progress > div {
+    height: 100%;
+    background: var(--brand);
+    transition: width 0.3s;
+  }
+  .card-bottom {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .card-precio {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--brand);
+  }
+  .card-fecha {
+    font-size: 11px;
+    color: var(--ink-3);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ============ MODAL / FICHA ============ */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 20px;
+    z-index: 100;
+    overflow-y: auto;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 960px;
+    margin: 20px 0;
+    overflow: hidden;
+    animation: modalin 0.2s;
+  }
+  @keyframes modalin { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .modal-head {
+    padding: 16px 20px;
     border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--bg-elev);
+    background: var(--bg-3);
   }
-  .card-head h2 {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 18px;
-    letter-spacing: 2px;
-    font-weight: 400;
+  .modal-head h2 {
+    font-size: 16px;
+    font-weight: 600;
   }
-  .card-body { padding: 12px 16px; }
+  .modal-head .close-x {
+    background: transparent;
+    border: none;
+    color: var(--ink-3);
+    cursor: pointer;
+    font-size: 22px;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
+  .modal-head .close-x:hover { background: var(--bg-4); color: var(--ink); }
 
-  /* STATS GRID */
-  .stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 10px;
-    margin-bottom: 16px;
+  .modal-tabs {
+    display: flex;
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    overflow-x: auto;
   }
-  .stat {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--accent);
-    padding: 12px 14px;
+  .modal-tabs button {
+    background: transparent;
+    border: none;
+    color: var(--ink-3);
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    display: flex; align-items: center; gap: 6px;
+    white-space: nowrap;
+    font-family: inherit;
   }
-  .stat .label {
-    font-family: 'JetBrains Mono', monospace;
+  .modal-tabs button:hover { color: var(--ink-2); }
+  .modal-tabs button.active { color: var(--brand); border-bottom-color: var(--brand); }
+  .modal-tabs button .badge {
+    background: var(--bg-3);
+    padding: 1px 6px;
+    border-radius: 100px;
     font-size: 10px;
-    color: var(--ink-faint);
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
   }
-  .stat .value {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 28px;
-    letter-spacing: 1px;
-    line-height: 1.1;
-    margin-top: 4px;
-  }
-  .stat .value.good { color: var(--good); }
-  .stat .value.bad { color: var(--bad); }
-  .stat .value.accent { color: var(--accent); }
 
-  /* ITEM ROWS */
+  .modal-body { padding: 20px; max-height: calc(100vh - 220px); overflow-y: auto; }
+
+  .ficha-section {
+    margin-bottom: 24px;
+  }
+  .ficha-section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--ink-3);
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .form-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .form-grid.cols-1 { grid-template-columns: 1fr; }
+  .field { display: flex; flex-direction: column; }
+  .field label {
+    font-size: 11px;
+    color: var(--ink-3);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+  }
+  .field label .req { color: var(--bad); }
+  .field input, .field select, .field textarea {
+    background: var(--bg);
+    border: 1px solid var(--border-2);
+    color: var(--ink);
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    width: 100%;
+    transition: border-color 0.15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: none;
+    border-color: var(--brand);
+  }
+  .field textarea { resize: vertical; min-height: 70px; font-family: inherit; }
+
+  /* ============ MATERIALES / TRABAJOS ROWS ============ */
+  .row-list {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--bg);
+  }
   .row {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--line);
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
     transition: background 0.1s;
   }
   .row:last-child { border-bottom: none; }
-  .row:hover { background: var(--bg-elev); }
+  .row:hover { background: var(--bg-3); }
   .row.inactive { opacity: 0.4; }
-  .row .name { flex: 1; font-size: 14px; }
-  .row .name.done { text-decoration: line-through; color: var(--ink-faint); }
+  .row .name { flex: 1; font-size: 13px; }
+  .row .name.done { text-decoration: line-through; color: var(--ink-3); }
   .row .price {
     font-family: 'JetBrains Mono', monospace;
     font-weight: 500;
-    font-size: 14px;
-    min-width: 80px;
+    font-size: 13px;
+    min-width: 70px;
     text-align: right;
   }
   .row .cat-badge {
-    font-family: 'JetBrains Mono', monospace;
     font-size: 10px;
-    padding: 3px 7px;
+    padding: 2px 7px;
+    border-radius: 100px;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    border: 1px solid;
+    letter-spacing: 0.5px;
+    font-weight: 600;
   }
-  .cat-motor { color: var(--warn); border-color: var(--warn); }
-  .cat-distribucion { color: #a78bfa; border-color: #a78bfa; }
-  .cat-electrico { color: #60a5fa; border-color: #60a5fa; }
-  .cat-neumaticos { color: var(--ink-dim); border-color: var(--ink-dim); }
-  .cat-otros { color: var(--good); border-color: var(--good); }
+  .cat-motor { background: var(--warn-bg); color: var(--warn); }
+  .cat-distribucion { background: var(--purple-bg); color: var(--purple); }
+  .cat-electrico { background: var(--info-bg); color: var(--info); }
+  .cat-neumaticos { background: var(--bg-4); color: var(--ink-2); }
+  .cat-otros { background: var(--good-bg); color: var(--good); }
 
   input[type="checkbox"] {
-    width: 18px; height: 18px;
-    accent-color: var(--accent);
+    width: 16px; height: 16px;
+    accent-color: var(--brand);
     cursor: pointer;
+    margin: 0;
   }
   .del-btn {
     background: transparent;
     border: none;
-    color: var(--ink-faint);
+    color: var(--ink-4);
     cursor: pointer;
-    padding: 4px;
-    font-size: 18px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    font-size: 16px;
     line-height: 1;
   }
-  .del-btn:hover { color: var(--bad); }
+  .del-btn:hover { background: var(--bad-bg); color: var(--bad); }
 
-  /* ADD FORM */
-  .add-form {
-    padding: 14px 16px;
-    background: var(--bg-elev);
-    border-top: 1px solid var(--border);
+  .add-row {
     display: flex;
     gap: 8px;
+    margin-top: 10px;
     flex-wrap: wrap;
   }
-  .add-form input, .add-form select {
+  .add-row input, .add-row select {
     background: var(--bg);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-2);
     color: var(--ink);
     padding: 8px 10px;
-    font-family: 'Inter', sans-serif;
-    font-size: 13px;
-    border-radius: 0;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 12px;
   }
-  .add-form input:focus, .add-form select:focus { outline: none; border-color: var(--accent); }
-  .add-form input[type="text"] { flex: 2; min-width: 140px; }
-  .add-form input[type="number"] { width: 90px; }
-  .add-form select { min-width: 130px; }
-  .add-form button {
-    background: var(--accent);
-    color: #000;
-    border: none;
-    padding: 8px 16px;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 14px;
-    letter-spacing: 1.5px;
-    cursor: pointer;
-    transition: filter 0.15s;
-  }
-  .add-form button:hover { filter: brightness(1.1); }
+  .add-row input[type="text"] { flex: 2; min-width: 120px; }
+  .add-row input[type="number"] { width: 80px; }
+  .add-row select { min-width: 120px; }
 
-  /* SLIDERS */
+  /* ============ STATS in MODAL ============ */
+  .modal-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .mstat {
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .mstat .label {
+    font-size: 10px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+  .mstat .value {
+    font-size: 20px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .mstat.accent .value { color: var(--brand); }
+  .mstat.good .value { color: var(--good); }
+
   .slider-row {
     display: flex;
     align-items: center;
@@ -301,350 +513,403 @@
     flex-wrap: wrap;
   }
   .slider-row label {
-    font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
-    color: var(--ink-dim);
+    color: var(--ink-3);
     text-transform: uppercase;
-    letter-spacing: 1.5px;
-    min-width: 140px;
+    letter-spacing: 0.5px;
+    min-width: 130px;
+    font-weight: 500;
   }
   .slider-row input[type="range"] {
     flex: 1;
-    min-width: 150px;
-    accent-color: var(--accent);
+    min-width: 140px;
+    accent-color: var(--brand);
   }
   .slider-out {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 24px;
-    color: var(--accent);
-    min-width: 90px;
-    text-align: right;
-    letter-spacing: 1px;
-  }
-
-  /* PROGRESS BAR */
-  .progress {
-    height: 10px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    overflow: hidden;
-    margin-top: 6px;
-  }
-  .progress > div {
-    height: 100%;
-    background: linear-gradient(90deg, var(--good), var(--accent));
-    transition: width 0.3s;
-  }
-
-  /* TECH NOTES */
-  .tech-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-left: 4px solid var(--accent);
-    padding: 16px 18px;
-    margin-bottom: 14px;
-  }
-  .tech-card h3 {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 20px;
-    letter-spacing: 1.5px;
-    margin-bottom: 10px;
-    color: var(--accent);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .tech-card ul, .tech-card ol { padding-left: 22px; }
-  .tech-card li {
-    margin: 8px 0;
-    font-size: 14px;
-    line-height: 1.6;
-    color: var(--ink);
-  }
-  .tech-card li strong { color: var(--accent); font-weight: 600; }
-  .tech-card p { font-size: 13px; color: var(--ink-dim); margin-bottom: 8px; }
-
-  /* COMPARATIVA */
-  .compare-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  .compare-table td {
-    padding: 10px 0;
-    border-bottom: 1px dashed var(--line);
-    font-size: 14px;
-  }
-  .compare-table td:first-child { color: var(--ink-dim); }
-  .compare-table td:last-child {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--brand);
+    min-width: 80px;
     text-align: right;
     font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ============ STATUS / MOVE BUTTONS ============ */
+  .status-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 12px 20px;
+    background: var(--bg-3);
+    border-top: 1px solid var(--border);
+  }
+  .status-actions select {
+    background: var(--bg);
+    border: 1px solid var(--border-2);
+    color: var(--ink);
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
     font-weight: 500;
   }
-  .compare-table tr:last-child td { border-bottom: none; }
-  .compare-table .highlight td { color: var(--accent); font-weight: 600; }
 
-  /* SETUP DIALOG */
-  .setup-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.85);
-    display: none;
+  /* ============ EMPTY STATE ============ */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--ink-3);
+  }
+  .empty-state h3 { font-size: 18px; margin-bottom: 8px; color: var(--ink-2); }
+  .empty-state p { font-size: 14px; margin-bottom: 16px; }
+
+  /* ============ HISTORICO / TERMINADOS ============ */
+  .historico-list {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 20px;
+  }
+  .hist-item {
+    display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 20px;
-    z-index: 100;
+    gap: 14px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s;
   }
-  .setup-overlay.show { display: flex; }
-  .setup-box {
-    background: var(--bg-card);
-    border: 2px solid var(--accent);
-    padding: 24px;
-    max-width: 480px;
-    width: 100%;
+  .hist-item:last-child { border-bottom: none; }
+  .hist-item:hover { background: var(--bg-3); }
+  .hist-fecha {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-3);
+    background: var(--bg);
+    padding: 6px 10px;
+    border-radius: 8px;
+    min-width: 110px;
+    text-align: center;
   }
-  .setup-box h2 {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 24px;
-    letter-spacing: 1.5px;
-    margin-bottom: 12px;
-    color: var(--accent);
+  .hist-info { flex: 1; }
+  .hist-titulo { font-weight: 600; font-size: 14px; }
+  .hist-sub { font-size: 12px; color: var(--ink-3); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+  .hist-precio { font-weight: 600; color: var(--brand); font-family: 'JetBrains Mono', monospace; }
+
+  /* ============ VIEW SWITCHER ============ */
+  .view-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 12px 20px 0;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
   }
-  .setup-box p { font-size: 14px; color: var(--ink-dim); margin-bottom: 14px; line-height: 1.6; }
-  .setup-box input {
-    width: 100%;
+  .view-tab {
+    background: transparent;
+    border: none;
+    color: var(--ink-3);
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 8px 8px 0 0;
+    font-family: inherit;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .view-tab:hover { color: var(--ink-2); }
+  .view-tab.active { color: var(--brand); border-bottom-color: var(--brand); }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ============ MOBILE ============ */
+  @media (max-width: 768px) {
+    .kanban { grid-template-columns: 1fr; min-width: 0; }
+    .kanban-wrap { padding: 12px; overflow-x: visible; }
+    .form-grid, .form-grid.cols-3 { grid-template-columns: 1fr; }
+    .topbar { padding: 0 12px; }
+    .brand small { display: none; }
+    .modal { margin: 0; border-radius: 0; min-height: 100vh; }
+    .modal-overlay { padding: 0; }
+    .modal-body { max-height: calc(100vh - 180px); }
+  }
+
+  /* ============ TECNICAS ============ */
+  .tech-card {
     background: var(--bg);
     border: 1px solid var(--border);
-    color: var(--ink);
-    padding: 10px 12px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
-    margin-bottom: 14px;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
   }
-  .setup-box .btn-row { display: flex; gap: 8px; }
-  .setup-box button {
-    flex: 1;
-    background: var(--accent);
-    color: #000;
-    border: none;
-    padding: 10px;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 15px;
-    letter-spacing: 1.5px;
-    cursor: pointer;
+  .tech-card h3 {
+    font-size: 14px;
+    margin-bottom: 10px;
+    color: var(--brand);
+    font-weight: 600;
   }
-  .setup-box button.secondary { background: transparent; color: var(--ink-dim); border: 1px solid var(--border); }
-  .setup-box a { color: var(--accent); }
-  .setup-box code { background: var(--bg); padding: 2px 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent); }
-
-  /* FOOTER */
-  footer {
-    text-align: center;
-    padding: 30px 20px;
-    color: var(--ink-faint);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-  }
-
-  /* MOBILE */
-  @media (max-width: 600px) {
-    main { padding: 14px; }
-    nav.tabs button { font-size: 14px; padding: 12px 14px; }
-    .stat .value { font-size: 22px; }
-    .vehicle-bar .titulo { font-size: 18px; }
-    .slider-row label { min-width: 100px; font-size: 10px; }
-    .slider-out { font-size: 20px; min-width: 70px; }
-  }
+  .tech-card ul, .tech-card ol { padding-left: 20px; font-size: 13px; line-height: 1.7; }
+  .tech-card li { margin: 4px 0; }
+  .tech-card li strong { color: var(--brand-2); font-weight: 600; }
+  .tech-card p { font-size: 13px; color: var(--ink-2); margin-bottom: 8px; line-height: 1.5; }
 </style>
 </head>
 <body>
 
-<header class="banner">
-  <div class="logo">⚙ TALLER · PRESUPUESTOS</div>
-  <div class="matricula">1236 CZJ</div>
-  <div class="sync-pill" id="sync-pill">
-    <span class="dot"></span>
-    <span id="sync-text">Conectando...</span>
+<!-- ============ TOPBAR ============ -->
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo">⚙</div>
+    <div>
+      Taller CRM <small>· Gestión de coches</small>
+    </div>
+  </div>
+  <div class="top-actions">
+    <div class="sync-pill" id="sync-pill">
+      <span class="dot"></span>
+      <span id="sync-text">Conectando...</span>
+    </div>
+    <button class="btn btn-primary" id="btn-nuevo">+ Nuevo coche</button>
   </div>
 </header>
 
-<div class="vehicle-bar">
-  <div>
-    <div class="titulo">Daewoo Kalos / Chevrolet Aveo 1.6 8v</div>
-    <div class="subtit">Motor SOHC · Objetivo: pasar ITV</div>
-  </div>
-  <div class="stamp">PRE-ITV</div>
+<!-- ============ VIEW TABS ============ -->
+<div class="view-tabs">
+  <button class="view-tab active" data-view="kanban">📋 Kanban</button>
+  <button class="view-tab" data-view="historico">📁 Histórico</button>
 </div>
 
-<nav class="tabs">
-  <button class="tab-btn active" data-tab="materiales">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-    Materiales
-  </button>
-  <button class="tab-btn" data-tab="presupuesto">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/></svg>
-    Presupuesto
-  </button>
-  <button class="tab-btn" data-tab="trabajos">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-    Trabajos
-  </button>
-  <button class="tab-btn" data-tab="tecnicas">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-    Técnica
-  </button>
-</nav>
-
-<main>
-  <!-- MATERIALES -->
-  <section class="tab-content active" id="tab-materiales">
-    <div class="stats">
-      <div class="stat"><div class="label">Total materiales</div><div class="value accent" id="mat-total">0 €</div></div>
-      <div class="stat"><div class="label">Items activos</div><div class="value" id="mat-count">0</div></div>
-      <div class="stat"><div class="label">Factura Gaudí</div><div class="value">240,98 €</div></div>
-      <div class="stat"><div class="label">AUTODOC neumáticos</div><div class="value">163,96 €</div></div>
-    </div>
-    <div class="card">
-      <div class="card-head"><h2>Listado de materiales</h2></div>
-      <div id="mat-list"></div>
-      <div class="add-form">
-        <input type="text" id="new-mat-name" placeholder="Concepto">
-        <input type="number" id="new-mat-price" placeholder="€" step="0.01">
-        <select id="new-mat-cat">
-          <option value="motor">Motor</option>
-          <option value="distribucion">Distribución</option>
-          <option value="electrico">Eléctrico</option>
-          <option value="neumaticos">Neumáticos</option>
-          <option value="otros">Otros</option>
-        </select>
-        <button id="add-mat-btn">+ Añadir</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- PRESUPUESTO -->
-  <section class="tab-content" id="tab-presupuesto">
-    <div class="card">
-      <div class="card-head"><h2>Calculadora de precio</h2></div>
-      <div class="card-body">
-        <div class="slider-row">
-          <label>Precio al cliente</label>
-          <input type="range" id="precio-slider" min="400" max="900" value="650" step="10">
-          <div class="slider-out" id="precio-out">650 €</div>
+<!-- ============ KANBAN VIEW ============ -->
+<div class="view active" id="view-kanban">
+  <div class="kanban-wrap">
+    <div class="kanban">
+      <div class="col col-pendiente">
+        <div class="col-head">
+          <div class="col-title"><span class="dot-color"></span>Pendiente</div>
+          <span class="col-count" id="count-pendiente">0</span>
         </div>
-        <div class="slider-row">
-          <label>Reparto Tú / Compañero</label>
-          <input type="range" id="split-slider" min="30" max="70" value="50" step="5">
-          <div class="slider-out" id="split-out">50/50</div>
+        <div class="col-body" data-col="pendiente" id="col-pendiente"></div>
+      </div>
+      <div class="col col-confirmado">
+        <div class="col-head">
+          <div class="col-title"><span class="dot-color"></span>Confirmado</div>
+          <span class="col-count" id="count-confirmado">0</span>
+        </div>
+        <div class="col-body" data-col="confirmado" id="col-confirmado"></div>
+      </div>
+      <div class="col col-encurso">
+        <div class="col-head">
+          <div class="col-title"><span class="dot-color"></span>En curso</div>
+          <span class="col-count" id="count-encurso">0</span>
+        </div>
+        <div class="col-body" data-col="encurso" id="col-encurso"></div>
+      </div>
+      <div class="col col-terminado">
+        <div class="col-head">
+          <div class="col-title"><span class="dot-color"></span>Terminado</div>
+          <span class="col-count" id="count-terminado">0</span>
+        </div>
+        <div class="col-body" data-col="terminado" id="col-terminado"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ HISTORICO VIEW ============ -->
+<div class="view" id="view-historico">
+  <div class="historico-list" id="historico-list"></div>
+</div>
+
+<!-- ============ MODAL: FICHA ============ -->
+<div class="modal-overlay" id="modal-ficha">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="ficha-titulo">Ficha del coche</h2>
+      <button class="close-x" id="ficha-close">×</button>
+    </div>
+    <div class="modal-tabs" id="ficha-tabs">
+      <button class="active" data-ftab="datos">📝 Datos</button>
+      <button data-ftab="materiales">🔧 Materiales <span class="badge" id="badge-mat">0</span></button>
+      <button data-ftab="trabajos">✓ Trabajos <span class="badge" id="badge-trab">0</span></button>
+      <button data-ftab="presupuesto">💰 Presupuesto</button>
+      <button data-ftab="tecnica">🛠 Técnica</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- TAB DATOS -->
+      <div class="ftab-content" id="ftab-datos">
+        <div class="ficha-section">
+          <div class="ficha-section-title">Datos del coche</div>
+          <div class="form-grid cols-3">
+            <div class="field">
+              <label>Marca <span class="req">*</span></label>
+              <input type="text" id="f-marca" placeholder="Daewoo">
+            </div>
+            <div class="field">
+              <label>Modelo <span class="req">*</span></label>
+              <input type="text" id="f-modelo" placeholder="Kalos">
+            </div>
+            <div class="field">
+              <label>Matrícula <span class="req">*</span></label>
+              <input type="text" id="f-matricula" placeholder="1236 CZJ">
+            </div>
+            <div class="field">
+              <label>Año</label>
+              <input type="text" id="f-anio" placeholder="2003">
+            </div>
+            <div class="field">
+              <label>Motor</label>
+              <input type="text" id="f-motor" placeholder="1.6 8v SOHC">
+            </div>
+            <div class="field">
+              <label>Kilómetros</label>
+              <input type="text" id="f-km" placeholder="180000">
+            </div>
+            <div class="field">
+              <label>Color</label>
+              <input type="text" id="f-color" placeholder="Plata">
+            </div>
+            <div class="field">
+              <label>VIN / Bastidor</label>
+              <input type="text" id="f-vin" placeholder="KLA...">
+            </div>
+            <div class="field">
+              <label>Fecha ITV</label>
+              <input type="date" id="f-fecha-itv">
+            </div>
+            <div class="field">
+              <label>Última revisión</label>
+              <input type="date" id="f-ult-revision">
+            </div>
+          </div>
+        </div>
+
+        <div class="ficha-section">
+          <div class="ficha-section-title">Datos del propietario</div>
+          <div class="form-grid cols-3">
+            <div class="field">
+              <label>Nombre completo <span class="req">*</span></label>
+              <input type="text" id="f-prop-nombre" placeholder="Juan Pérez García">
+            </div>
+            <div class="field">
+              <label>Teléfono <span class="req">*</span></label>
+              <input type="tel" id="f-prop-tel" placeholder="600 123 456">
+            </div>
+            <div class="field">
+              <label>DNI</label>
+              <input type="text" id="f-prop-dni" placeholder="12345678X">
+            </div>
+            <div class="field">
+              <label>Email</label>
+              <input type="email" id="f-prop-email" placeholder="juan@email.com">
+            </div>
+            <div class="field" style="grid-column: span 2;">
+              <label>Dirección</label>
+              <input type="text" id="f-prop-direccion" placeholder="Calle..., nº, piso, ciudad">
+            </div>
+          </div>
+        </div>
+
+        <div class="ficha-section">
+          <div class="ficha-section-title">Notas internas</div>
+          <div class="field">
+            <textarea id="f-notas" placeholder="Notas, observaciones, problemas detectados..."></textarea>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="stats">
-      <div class="stat"><div class="label">Material</div><div class="value" id="pres-material">0 €</div></div>
-      <div class="stat"><div class="label">Beneficio total</div><div class="value good" id="pres-beneficio">0 €</div></div>
-      <div class="stat"><div class="label">Tú</div><div class="value accent" id="pres-tu">0 €</div></div>
-      <div class="stat"><div class="label">Compañero</div><div class="value accent" id="pres-comp">0 €</div></div>
-    </div>
-
-    <div class="card">
-      <div class="card-head"><h2>Comparativa con taller</h2></div>
-      <div class="card-body">
-        <table class="compare-table">
-          <tr><td>Taller normal (mano obra + piezas)</td><td>1.200 – 1.500 €</td></tr>
-          <tr class="highlight"><td>Vuestro precio</td><td id="comp-vuestro">650 €</td></tr>
-          <tr><td>Ahorro al cliente</td><td id="comp-ahorro" style="color: var(--good);">~550 – 850 €</td></tr>
-          <tr><td>% sobre material</td><td id="comp-margin">—</td></tr>
-        </table>
+      <!-- TAB MATERIALES -->
+      <div class="ftab-content" id="ftab-materiales" style="display:none">
+        <div class="modal-stats">
+          <div class="mstat"><div class="label">Total materiales</div><div class="value accent" id="mat-total">0 €</div></div>
+          <div class="mstat"><div class="label">Items activos</div><div class="value" id="mat-count">0</div></div>
+        </div>
+        <div class="row-list" id="mat-list"></div>
+        <div class="add-row">
+          <input type="text" id="new-mat-name" placeholder="Concepto">
+          <input type="number" id="new-mat-price" placeholder="€" step="0.01">
+          <select id="new-mat-cat">
+            <option value="motor">Motor</option>
+            <option value="distribucion">Distribución</option>
+            <option value="electrico">Eléctrico</option>
+            <option value="neumaticos">Neumáticos</option>
+            <option value="otros">Otros</option>
+          </select>
+          <button class="btn btn-primary btn-sm" id="add-mat-btn">+ Añadir</button>
+        </div>
       </div>
-    </div>
-  </section>
 
-  <!-- TRABAJOS -->
-  <section class="tab-content" id="tab-trabajos">
-    <div class="stats">
-      <div class="stat"><div class="label">Completados</div><div class="value" id="trab-done">0 / 0</div></div>
-      <div class="stat" style="flex: 2; min-width: 200px;">
-        <div class="label">Progreso</div>
-        <div class="value" id="trab-pct">0%</div>
-        <div class="progress"><div id="trab-progress" style="width: 0%;"></div></div>
+      <!-- TAB TRABAJOS -->
+      <div class="ftab-content" id="ftab-trabajos" style="display:none">
+        <div class="modal-stats">
+          <div class="mstat"><div class="label">Completados</div><div class="value good" id="trab-done">0 / 0</div></div>
+          <div class="mstat"><div class="label">Progreso</div><div class="value accent" id="trab-pct">0%</div></div>
+        </div>
+        <div class="row-list" id="trab-list"></div>
+        <div class="add-row">
+          <input type="text" id="new-trab-name" placeholder="Nuevo trabajo">
+          <button class="btn btn-primary btn-sm" id="add-trab-btn">+ Añadir</button>
+        </div>
       </div>
-    </div>
 
-    <div class="card">
-      <div class="card-head"><h2>Trabajos a realizar</h2></div>
-      <div id="trab-list"></div>
-      <div class="add-form">
-        <input type="text" id="new-trab-name" placeholder="Nuevo trabajo">
-        <button id="add-trab-btn">+ Añadir</button>
+      <!-- TAB PRESUPUESTO -->
+      <div class="ftab-content" id="ftab-presupuesto" style="display:none">
+        <div class="ficha-section">
+          <div class="ficha-section-title">Calculadora</div>
+          <div class="slider-row">
+            <label>Precio al cliente</label>
+            <input type="range" id="precio-slider" min="100" max="3000" value="650" step="10">
+            <div class="slider-out" id="precio-out">650 €</div>
+          </div>
+          <div class="slider-row">
+            <label>Reparto Tú / Compa.</label>
+            <input type="range" id="split-slider" min="0" max="100" value="50" step="5">
+            <div class="slider-out" id="split-out">50/50</div>
+          </div>
+        </div>
+        <div class="modal-stats">
+          <div class="mstat"><div class="label">Material</div><div class="value" id="pres-material">0 €</div></div>
+          <div class="mstat good"><div class="label">Beneficio total</div><div class="value" id="pres-beneficio">0 €</div></div>
+          <div class="mstat accent"><div class="label">Tú</div><div class="value" id="pres-tu">0 €</div></div>
+          <div class="mstat accent"><div class="label">Compañero</div><div class="value" id="pres-comp">0 €</div></div>
+        </div>
       </div>
+
+      <!-- TAB TECNICA -->
+      <div class="ftab-content" id="ftab-tecnica" style="display:none">
+        <div class="tech-card">
+          <h3>Notas técnicas</h3>
+          <div class="field">
+            <textarea id="f-tecnica" placeholder="Calado, par de apriete, procedimiento, marcas, útiles..." style="min-height:200px"></textarea>
+          </div>
+        </div>
+        <div class="tech-card" id="tech-defaults" style="display:none">
+          <h3>📋 Ayuda rápida · Motor 1.6 8v SOHC</h3>
+          <p><strong>Calado:</strong> Cilindro 1 en PMS de compresión, marca polea cigüeñal con saliente del bloque (12h), marca polea leva con muesca de tapa culata, volante visible por ventana de campana.</p>
+          <p><strong>Tornillo polea cigüeñal:</strong> hasta 150 Nm.</p>
+        </div>
+      </div>
+
     </div>
-  </section>
-
-  <!-- TÉCNICA -->
-  <section class="tab-content" id="tab-tecnicas">
-    <div class="tech-card">
-      <h3>⚙ Calado del motor 1.6 8v SOHC</h3>
-      <p>Marcas a alinear con el cilindro 1 en PMS de compresión:</p>
-      <ul>
-        <li><strong>Cigüeñal:</strong> marca de la polea con el saliente del bloque (posición 12h).</li>
-        <li><strong>Árbol de levas:</strong> marca de la polea alineada con la muesca de la tapa superior de culata.</li>
-        <li><strong>Volante motor:</strong> marca visible por la ventana de la campana, alineada con el puntero fijo.</li>
-      </ul>
-      <p style="margin-top: 12px; color: var(--warn);">⚠ Verifica con manual técnico exacto antes de meter mano. Hay variantes según año/mercado.</p>
+    <div class="status-actions">
+      <label style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.5px;font-weight:500;display:flex;align-items:center;">Estado:</label>
+      <select id="ficha-status">
+        <option value="pendiente">Pendiente</option>
+        <option value="confirmado">Confirmado</option>
+        <option value="encurso">En curso</option>
+        <option value="terminado">Terminado</option>
+      </select>
+      <div style="flex:1"></div>
+      <button class="btn btn-danger btn-sm" id="ficha-delete">🗑 Eliminar</button>
+      <button class="btn btn-primary" id="ficha-save">💾 Guardar</button>
     </div>
+  </div>
+</div>
 
-    <div class="tech-card">
-      <h3>🔧 Procedimiento de distribución</h3>
-      <ol>
-        <li>Desconectar batería y quitar rueda delantera derecha + protector.</li>
-        <li>Aflojar correa auxiliar y retirarla.</li>
-        <li>Soportar el motor con gato + taco de madera y quitar soporte motor derecho.</li>
-        <li>Desmontar tapas superior e inferior de distribución.</li>
-        <li>Girar motor en sentido horario hasta alinear las 3 marcas.</li>
-        <li>Aflojar tensor, retirar correa vieja, comparar dientes con la nueva.</li>
-        <li>Montar correa nueva: cigüeñal → guía → leva → bomba agua → tensor.</li>
-        <li>Tensar, girar 2 vueltas a mano en sentido horario, recomprobar marcas.</li>
-        <li>Montar todo en orden inverso. Apretar tornillo polea cigüeñal a par.</li>
-      </ol>
-    </div>
-
-    <div class="tech-card">
-      <h3>🛠 Útiles necesarios</h3>
-      <ul>
-        <li>Llave dinamométrica (hasta 150 Nm para tornillo cigüeñal).</li>
-        <li>Útil de bloqueo del volante motor o pin de calado.</li>
-        <li>Llave de tensor de correa.</li>
-        <li>Gato hidráulico + taco de madera para soportar motor.</li>
-        <li>Juego de vasos largos 1/2", llaves Torx.</li>
-        <li>Rascador de juntas y desengrasante para junta de cárter.</li>
-        <li>Pistola de silicona para junta líquida (negra Ateni).</li>
-        <li>OBD2 para borrado de fallos motor + airbag.</li>
-      </ul>
-    </div>
-
-    <div class="tech-card">
-      <h3>📋 Checklist pre-ITV</h3>
-      <ul>
-        <li><strong>Luces:</strong> cortas, largas, antiniebla, posición, freno, intermitentes, marcha atrás, matrícula.</li>
-        <li><strong>Frenos:</strong> pedal firme, freno de mano sube y sujeta, sin fugas.</li>
-        <li><strong>Holguras:</strong> dirección, suspensión, rótulas, manguitos.</li>
-        <li><strong>Neumáticos:</strong> dibujo &gt;1.6mm, sin cortes ni bultos, presión correcta.</li>
-        <li><strong>Limpiaparabrisas:</strong> escobillas en buen estado, agua en depósito.</li>
-        <li><strong>Cinturones:</strong> recogen bien y bloquean al tirón.</li>
-        <li><strong>Testigos:</strong> ningún testigo de avería encendido (sobre todo airbag y motor).</li>
-        <li><strong>Documentación:</strong> permiso circulación, ficha técnica, seguro al día.</li>
-      </ul>
-    </div>
-  </section>
-</main>
-
-<footer>
-  Datos sincronizados entre dispositivos · Refresca para actualizar
-</footer>
-
-<!-- Firebase SDK (compat para usar sin módulos) -->
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
@@ -661,58 +926,78 @@ const firebaseConfig = {
   messagingSenderId: "232322928370",
   appId: "1:232322928370:web:c80768132c751d4c8c4a6b"
 };
-
-// Inicializar Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-const dbRef = db.ref('kalos');
+const cochesRef = db.ref('coches_v2');
 
-// Default data
-const DEFAULT_MATERIALES = [
-  { id: 1, name: 'Tornillo purgador aceite', price: 3.42, cat: 'motor', active: true },
-  { id: 2, name: 'Turismo Suzuki (mano obra)', price: 3.49, cat: 'otros', active: true },
-  { id: 3, name: 'Escobilla Ateni 380mm', price: 2.69, cat: 'electrico', active: true },
-  { id: 4, name: 'Escobilla NAPA 400mm', price: 3.59, cat: 'electrico', active: true },
-  { id: 5, name: 'Escobilla NAPA 550mm', price: 5.05, cat: 'electrico', active: true },
-  { id: 6, name: 'Filtro aceite Bosch P2058', price: 6.49, cat: 'motor', active: true },
-  { id: 7, name: 'Aceite Officialtech 5W30 5L', price: 43.18, cat: 'motor', active: true },
-  { id: 8, name: 'Correa auxiliar Gates micro-V', price: 20.16, cat: 'distribucion', active: true },
-  { id: 9, name: 'Correa auxiliar Gates micro-V (2)', price: 10.82, cat: 'distribucion', active: true },
-  { id: 10, name: 'Kit distribución Bosch (correa+tensor)', price: 71.88, cat: 'distribucion', active: true },
-  { id: 11, name: 'Silicona junta cárter Ateni negra 200ml', price: 22.16, cat: 'motor', active: true },
-  { id: 12, name: 'Junta cárter + retén cigüeñal', price: 30.00, cat: 'motor', active: true },
-  { id: 13, name: 'Bombillas lote ITV', price: 12.00, cat: 'electrico', active: true },
-  { id: 14, name: 'Borrado fallos airbag', price: 30.00, cat: 'electrico', active: true },
-  { id: 15, name: 'Neumáticos Star Performer 185/60 R14 x4', price: 163.96, cat: 'neumaticos', active: true }
-];
+// ============================================================
+// STATE
+// ============================================================
+let coches = {}; // { id: cocheObj }
+let currentId = null; // id de la ficha abierta
+let isApplyingRemote = false;
+let saveTimer = null;
 
-const DEFAULT_TRABAJOS = [
-  { id: 1, name: 'Distribución completa', done: false },
-  { id: 2, name: 'Correa auxiliar', done: false },
-  { id: 3, name: 'Junta de cárter', done: false },
-  { id: 4, name: 'Retén de cigüeñal', done: false },
-  { id: 5, name: 'Cambio aceite y filtro', done: false },
-  { id: 6, name: 'Cambio escobillas', done: false },
-  { id: 7, name: 'Cambio bombillas fundidas', done: false },
-  { id: 8, name: 'Borrado fallos OBD2 / airbag', done: false },
-  { id: 9, name: 'Montaje neumáticos nuevos', done: false },
-  { id: 10, name: 'Repaso pre-ITV completo', done: false },
-  { id: 11, name: 'Llevar a ITV', done: false }
-];
-
-const LS_KEY = 'kalos-itv-data-v3';
-
-let state = {
-  materiales: [...DEFAULT_MATERIALES],
-  trabajos: [...DEFAULT_TRABAJOS],
+// Default Kalos (caso real activo)
+const DEFAULT_KALOS = {
+  id: 'kalos-1236czj',
+  status: 'encurso',
+  marca: 'Daewoo',
+  modelo: 'Kalos / Chevrolet Aveo',
+  matricula: '1236 CZJ',
+  anio: '',
+  motor: '1.6 8v SOHC',
+  km: '',
+  color: '',
+  vin: '',
+  fechaItv: '',
+  ultRevision: '',
+  propNombre: '',
+  propTel: '',
+  propDni: '',
+  propEmail: '',
+  propDireccion: '',
+  notas: 'Objetivo: pasar ITV con material mínimo. Hacemos nosotros la reparación.',
+  tecnica: 'CALADO MOTOR 1.6 8v SOHC:\n- Cigüeñal: marca polea con saliente del bloque (12h)\n- Árbol de levas: marca polea alineada con muesca tapa superior culata\n- Volante motor: marca visible por ventana de campana, alineada con puntero fijo\n\nPROCEDIMIENTO DISTRIBUCIÓN:\n1. Desconectar batería, quitar rueda delantera dcha + protector\n2. Aflojar correa auxiliar y retirarla\n3. Soportar motor con gato + taco, quitar soporte motor dcho\n4. Desmontar tapas distribución sup/inf\n5. Girar motor en sentido horario hasta alinear 3 marcas\n6. Aflojar tensor, retirar correa vieja, comparar dientes\n7. Montar correa nueva: cigüeñal → guía → leva → bomba agua → tensor\n8. Tensar, girar 2 vueltas a mano, recomprobar marcas\n9. Montar todo. Tornillo polea cigüeñal a 150 Nm\n\nÚTILES:\n- Llave dinamométrica\n- Útil bloqueo volante / pin calado\n- Llave tensor\n- Gato + taco madera\n- Vasos largos 1/2", Torx\n- Rascador juntas + desengrasante\n- Pistola silicona\n- OBD2',
+  materiales: [
+    { id: 1, name: 'Tornillo purgador aceite', price: 3.42, cat: 'motor', active: true },
+    { id: 2, name: 'Turismo Suzuki (mano obra)', price: 3.49, cat: 'otros', active: true },
+    { id: 3, name: 'Escobilla Ateni 380mm', price: 2.69, cat: 'electrico', active: true },
+    { id: 4, name: 'Escobilla NAPA 400mm', price: 3.59, cat: 'electrico', active: true },
+    { id: 5, name: 'Escobilla NAPA 550mm', price: 5.05, cat: 'electrico', active: true },
+    { id: 6, name: 'Filtro aceite Bosch P2058', price: 6.49, cat: 'motor', active: true },
+    { id: 7, name: 'Aceite Officialtech 5W30 5L', price: 43.18, cat: 'motor', active: true },
+    { id: 8, name: 'Correa auxiliar Gates micro-V', price: 20.16, cat: 'distribucion', active: true },
+    { id: 9, name: 'Correa auxiliar Gates micro-V (2)', price: 10.82, cat: 'distribucion', active: true },
+    { id: 10, name: 'Kit distribución Bosch (correa+tensor)', price: 71.88, cat: 'distribucion', active: true },
+    { id: 11, name: 'Silicona junta cárter Ateni negra 200ml', price: 22.16, cat: 'motor', active: true },
+    { id: 12, name: 'Junta cárter + retén cigüeñal', price: 30.00, cat: 'motor', active: true },
+    { id: 13, name: 'Bombillas lote ITV', price: 12.00, cat: 'electrico', active: true },
+    { id: 14, name: 'Borrado fallos airbag', price: 30.00, cat: 'electrico', active: true },
+    { id: 15, name: 'Neumáticos Star Performer 185/60 R14 x4', price: 163.96, cat: 'neumaticos', active: true }
+  ],
+  trabajos: [
+    { id: 1, name: 'Distribución completa', done: false },
+    { id: 2, name: 'Correa auxiliar', done: false },
+    { id: 3, name: 'Junta de cárter', done: false },
+    { id: 4, name: 'Retén de cigüeñal', done: false },
+    { id: 5, name: 'Cambio aceite y filtro', done: false },
+    { id: 6, name: 'Cambio escobillas', done: false },
+    { id: 7, name: 'Cambio bombillas fundidas', done: false },
+    { id: 8, name: 'Borrado fallos OBD2 / airbag', done: false },
+    { id: 9, name: 'Montaje neumáticos nuevos', done: false },
+    { id: 10, name: 'Repaso pre-ITV completo', done: false },
+    { id: 11, name: 'Llevar a ITV', done: false }
+  ],
   precio: 650,
-  split: 50
+  split: 50,
+  createdAt: Date.now(),
+  finishedAt: null
 };
 
-let saveTimer = null;
-let isApplyingRemote = false; // evita bucles cuando aplicamos cambios remotos
-
-// ===== Sync UI =====
+// ============================================================
+// SYNC
+// ============================================================
 function setSyncStatus(st, text) {
   const pill = document.getElementById('sync-pill');
   const txt = document.getElementById('sync-text');
@@ -723,242 +1008,549 @@ function setSyncStatus(st, text) {
   txt.textContent = text;
 }
 
-// ===== Cache local =====
-function saveLocal() {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e) {}
-}
-function loadLocal() {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed.materiales) state.materiales = parsed.materiales;
-      if (parsed.trabajos) state.trabajos = parsed.trabajos;
-      if (typeof parsed.precio === 'number') state.precio = parsed.precio;
-      if (typeof parsed.split === 'number') state.split = parsed.split;
-    }
-  } catch(e) {}
-}
-
-// ===== Firebase =====
-async function saveRemote() {
-  if (isApplyingRemote) return; // no guardes si lo que cambió vino del remoto
+async function saveCoche(coche) {
+  if (isApplyingRemote) return;
   setSyncStatus('saving', 'Guardando...');
   try {
-    await dbRef.set({
-      materiales: state.materiales,
-      trabajos: state.trabajos,
-      precio: state.precio,
-      split: state.split,
-      updatedAt: Date.now()
-    });
+    await cochesRef.child(coche.id).set(coche);
     setSyncStatus('ok', 'Sincronizado');
-  } catch(e) {
-    console.error('Firebase save error:', e);
-    setSyncStatus('error', 'Error guardando');
+  } catch (e) {
+    console.error('save error:', e);
+    setSyncStatus('error', 'Error');
   }
 }
 
-function queueSave() {
-  saveLocal();
-  if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveRemote, 400);
+async function deleteCoche(id) {
+  setSyncStatus('saving', 'Borrando...');
+  try {
+    await cochesRef.child(id).remove();
+    setSyncStatus('ok', 'Sincronizado');
+  } catch (e) {
+    console.error('delete error:', e);
+    setSyncStatus('error', 'Error');
+  }
 }
 
 function startRealtimeSync() {
-  // Listener en tiempo real: cada vez que CUALQUIERA cambia algo, nos llega
-  dbRef.on('value', snapshot => {
-    const remote = snapshot.val();
-    if (remote && remote.materiales) {
-      isApplyingRemote = true;
-      state.materiales = remote.materiales || state.materiales;
-      state.trabajos = remote.trabajos || state.trabajos;
-      if (typeof remote.precio === 'number') state.precio = remote.precio;
-      if (typeof remote.split === 'number') state.split = remote.split;
-      saveLocal();
-      render();
-      setSyncStatus('ok', 'Sincronizado');
-      // pequeño delay para evitar que el siguiente change dispare un save
-      setTimeout(() => { isApplyingRemote = false; }, 100);
-    } else {
-      // Base de datos vacía → subir defaults
+  cochesRef.on('value', snapshot => {
+    isApplyingRemote = true;
+    const remote = snapshot.val() || {};
+    coches = {};
+    Object.keys(remote).forEach(id => {
+      const c = remote[id];
+      // arrays pueden venir como objects desde Firebase
+      if (c.materiales && !Array.isArray(c.materiales)) {
+        c.materiales = Object.values(c.materiales);
+      }
+      if (c.trabajos && !Array.isArray(c.trabajos)) {
+        c.trabajos = Object.values(c.trabajos);
+      }
+      if (!c.materiales) c.materiales = [];
+      if (!c.trabajos) c.trabajos = [];
+      coches[id] = c;
+    });
+    
+    // Si no hay coches, sembrar con el Kalos
+    if (Object.keys(coches).length === 0) {
       isApplyingRemote = false;
-      saveRemote();
+      coches[DEFAULT_KALOS.id] = DEFAULT_KALOS;
+      saveCoche(DEFAULT_KALOS);
+    } else {
+      isApplyingRemote = false;
     }
+    
+    renderAll();
+    setSyncStatus('ok', 'Sincronizado');
   }, err => {
-    console.error('Firebase listener error:', err);
+    console.error('listener error:', err);
     setSyncStatus('error', 'Sin conexión');
   });
 }
 
-// ===== Render =====
-const CAT_LABELS = {
-  motor: 'Motor', distribucion: 'Distrib.', electrico: 'Eléct.',
-  neumaticos: 'Neum.', otros: 'Otros'
-};
-
-function totalMat() {
-  return state.materiales.filter(m => m.active).reduce((s, m) => s + m.price, 0);
+// ============================================================
+// RENDER KANBAN
+// ============================================================
+function totalMat(c) {
+  if (!c.materiales) return 0;
+  return c.materiales.filter(m => m.active).reduce((s, m) => s + (m.price || 0), 0);
+}
+function progresoTrabajos(c) {
+  if (!c.trabajos || c.trabajos.length === 0) return 0;
+  const done = c.trabajos.filter(t => t.done).length;
+  return Math.round((done / c.trabajos.length) * 100);
+}
+function tituloCoche(c) {
+  const partes = [c.marca, c.modelo].filter(Boolean).join(' ');
+  return partes || 'Sin nombre';
+}
+function fmtFecha(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
 
-function renderMateriales() {
-  const list = document.getElementById('mat-list');
-  list.innerHTML = state.materiales.map(m => `
-    <div class="row ${m.active ? '' : 'inactive'}">
-      <input type="checkbox" ${m.active ? 'checked' : ''} data-mat-toggle="${m.id}">
-      <span class="name">${escapeHtml(m.name)}</span>
-      <span class="cat-badge cat-${m.cat}">${CAT_LABELS[m.cat] || m.cat}</span>
-      <span class="price">${m.price.toFixed(2)} €</span>
-      <button class="del-btn" data-mat-del="${m.id}" aria-label="Eliminar">×</button>
+function cardHTML(c) {
+  const total = totalMat(c);
+  const pct = progresoTrabajos(c);
+  return `
+    <div class="card" data-id="${c.id}" data-status="${c.status || 'pendiente'}" draggable="true">
+      <div class="card-title">${escapeHtml(tituloCoche(c))}</div>
+      <div class="card-sub">${escapeHtml(c.matricula || '— sin matrícula —')}</div>
+      <div class="card-meta">
+        ${c.propNombre ? `<div class="card-meta-item">👤 ${escapeHtml(c.propNombre.split(' ')[0])}</div>` : ''}
+        ${c.propTel ? `<div class="card-meta-item">📞 ${escapeHtml(c.propTel)}</div>` : ''}
+        ${c.motor ? `<div class="card-meta-item">⚙ ${escapeHtml(c.motor)}</div>` : ''}
+      </div>
+      ${c.trabajos && c.trabajos.length > 0 ? `
+        <div class="card-progress"><div style="width:${pct}%"></div></div>
+      ` : ''}
+      <div class="card-bottom">
+        <span class="card-precio">${total > 0 ? total.toFixed(2) + ' €' : '—'}</span>
+        <span class="card-fecha">${fmtFecha(c.createdAt)}</span>
+      </div>
     </div>
-  `).join('');
-  const tot = totalMat();
-  document.getElementById('mat-total').textContent = tot.toFixed(2) + ' €';
-  document.getElementById('mat-count').textContent = state.materiales.filter(m => m.active).length;
+  `;
 }
 
-function renderPresupuesto() {
-  const mat = totalMat();
-  const precio = state.precio;
-  const split = state.split;
+function renderKanban() {
+  const cols = ['pendiente', 'confirmado', 'encurso', 'terminado'];
+  cols.forEach(col => {
+    const items = Object.values(coches).filter(c => (c.status || 'pendiente') === col);
+    const el = document.getElementById('col-' + col);
+    if (items.length === 0) {
+      el.innerHTML = `<div class="col-empty">Vacío</div>`;
+    } else {
+      el.innerHTML = items.map(cardHTML).join('');
+    }
+    document.getElementById('count-' + col).textContent = items.length;
+  });
+  attachCardEvents();
+}
+
+function renderHistorico() {
+  const terminados = Object.values(coches)
+    .filter(c => c.status === 'terminado')
+    .sort((a, b) => (b.finishedAt || b.createdAt || 0) - (a.finishedAt || a.createdAt || 0));
+  
+  const list = document.getElementById('historico-list');
+  if (terminados.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <h3>Sin coches terminados</h3>
+        <p>Cuando muevas un coche a "Terminado" aparecerá aquí.</p>
+      </div>
+    `;
+    return;
+  }
+  list.innerHTML = terminados.map(c => {
+    const titulo = c.propNombre 
+      ? `${escapeHtml(c.propNombre)} · ${escapeHtml(tituloCoche(c))}` 
+      : escapeHtml(tituloCoche(c));
+    const total = totalMat(c);
+    return `
+      <div class="hist-item" data-id="${c.id}">
+        <div class="hist-fecha">${fmtFecha(c.finishedAt || c.createdAt)}</div>
+        <div class="hist-info">
+          <div class="hist-titulo">${titulo}</div>
+          <div class="hist-sub">${escapeHtml(c.matricula || '—')} · ${escapeHtml(c.motor || '')}</div>
+        </div>
+        <div class="hist-precio">${c.precio ? c.precio + ' €' : (total > 0 ? total.toFixed(2) + ' €' : '—')}</div>
+      </div>
+    `;
+  }).join('');
+  list.querySelectorAll('.hist-item').forEach(el => {
+    el.addEventListener('click', () => openFicha(el.dataset.id));
+  });
+}
+
+function renderAll() {
+  renderKanban();
+  renderHistorico();
+  if (currentId && coches[currentId]) {
+    // Si hay ficha abierta, refrescamos su tab actual
+    const activeTab = document.querySelector('#ficha-tabs button.active');
+    if (activeTab) renderFichaTab(activeTab.dataset.ftab);
+  }
+}
+
+// ============================================================
+// DRAG & DROP
+// ============================================================
+let draggedId = null;
+
+function attachCardEvents() {
+  document.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', e => {
+      if (!card.classList.contains('dragging')) openFicha(card.dataset.id);
+    });
+    card.addEventListener('dragstart', e => {
+      draggedId = card.dataset.id;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+      draggedId = null;
+    });
+  });
+}
+
+document.querySelectorAll('.col-body').forEach(col => {
+  col.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    col.classList.add('drag-over');
+  });
+  col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
+  col.addEventListener('drop', async e => {
+    e.preventDefault();
+    col.classList.remove('drag-over');
+    if (!draggedId) return;
+    const newStatus = col.dataset.col;
+    const coche = coches[draggedId];
+    if (!coche || coche.status === newStatus) return;
+    coche.status = newStatus;
+    if (newStatus === 'terminado') {
+      coche.finishedAt = Date.now();
+    }
+    await saveCoche(coche);
+  });
+});
+
+// ============================================================
+// FICHA / MODAL
+// ============================================================
+function openFicha(id) {
+  if (!coches[id]) return;
+  currentId = id;
+  const c = coches[id];
+  document.getElementById('ficha-titulo').textContent = tituloCoche(c) + (c.matricula ? ' · ' + c.matricula : '');
+  
+  // Llenar todos los campos
+  document.getElementById('f-marca').value = c.marca || '';
+  document.getElementById('f-modelo').value = c.modelo || '';
+  document.getElementById('f-matricula').value = c.matricula || '';
+  document.getElementById('f-anio').value = c.anio || '';
+  document.getElementById('f-motor').value = c.motor || '';
+  document.getElementById('f-km').value = c.km || '';
+  document.getElementById('f-color').value = c.color || '';
+  document.getElementById('f-vin').value = c.vin || '';
+  document.getElementById('f-fecha-itv').value = c.fechaItv || '';
+  document.getElementById('f-ult-revision').value = c.ultRevision || '';
+  document.getElementById('f-prop-nombre').value = c.propNombre || '';
+  document.getElementById('f-prop-tel').value = c.propTel || '';
+  document.getElementById('f-prop-dni').value = c.propDni || '';
+  document.getElementById('f-prop-email').value = c.propEmail || '';
+  document.getElementById('f-prop-direccion').value = c.propDireccion || '';
+  document.getElementById('f-notas').value = c.notas || '';
+  document.getElementById('f-tecnica').value = c.tecnica || '';
+  document.getElementById('ficha-status').value = c.status || 'pendiente';
+  
+  // Mostrar ayuda Kalos si aplica
+  document.getElementById('tech-defaults').style.display = 
+    (c.motor && c.motor.includes('SOHC')) ? 'block' : 'none';
+  
+  // Activar tab "Datos" por defecto
+  switchFichaTab('datos');
+  
+  document.getElementById('modal-ficha').classList.add('show');
+}
+
+function closeFicha() {
+  document.getElementById('modal-ficha').classList.remove('show');
+  currentId = null;
+}
+
+function switchFichaTab(tab) {
+  document.querySelectorAll('#ficha-tabs button').forEach(b => b.classList.toggle('active', b.dataset.ftab === tab));
+  document.querySelectorAll('.ftab-content').forEach(c => c.style.display = 'none');
+  document.getElementById('ftab-' + tab).style.display = 'block';
+  renderFichaTab(tab);
+}
+
+function renderFichaTab(tab) {
+  if (!currentId || !coches[currentId]) return;
+  const c = coches[currentId];
+  if (tab === 'materiales') renderMateriales(c);
+  if (tab === 'trabajos') renderTrabajos(c);
+  if (tab === 'presupuesto') renderPresupuesto(c);
+  // Actualizar badges
+  document.getElementById('badge-mat').textContent = (c.materiales || []).filter(m => m.active).length;
+  document.getElementById('badge-trab').textContent = (c.trabajos || []).filter(t => t.done).length + '/' + (c.trabajos || []).length;
+}
+
+const CAT_LABELS = { motor: 'Motor', distribucion: 'Distrib.', electrico: 'Eléct.', neumaticos: 'Neum.', otros: 'Otros' };
+
+function renderMateriales(c) {
+  const list = document.getElementById('mat-list');
+  const mats = c.materiales || [];
+  if (mats.length === 0) {
+    list.innerHTML = '<div class="col-empty" style="margin:0">Sin materiales. Añade abajo.</div>';
+  } else {
+    list.innerHTML = mats.map(m => `
+      <div class="row ${m.active ? '' : 'inactive'}">
+        <input type="checkbox" ${m.active ? 'checked' : ''} data-mat-toggle="${m.id}">
+        <span class="name">${escapeHtml(m.name)}</span>
+        <span class="cat-badge cat-${m.cat}">${CAT_LABELS[m.cat] || m.cat}</span>
+        <span class="price">${(m.price || 0).toFixed(2)} €</span>
+        <button class="del-btn" data-mat-del="${m.id}" aria-label="Eliminar">×</button>
+      </div>
+    `).join('');
+  }
+  document.getElementById('mat-total').textContent = totalMat(c).toFixed(2) + ' €';
+  document.getElementById('mat-count').textContent = mats.filter(m => m.active).length;
+}
+
+function renderTrabajos(c) {
+  const list = document.getElementById('trab-list');
+  const trabs = c.trabajos || [];
+  if (trabs.length === 0) {
+    list.innerHTML = '<div class="col-empty" style="margin:0">Sin trabajos. Añade abajo.</div>';
+  } else {
+    list.innerHTML = trabs.map(t => `
+      <div class="row">
+        <input type="checkbox" ${t.done ? 'checked' : ''} data-trab-toggle="${t.id}">
+        <span class="name ${t.done ? 'done' : ''}">${escapeHtml(t.name)}</span>
+        <button class="del-btn" data-trab-del="${t.id}" aria-label="Eliminar">×</button>
+      </div>
+    `).join('');
+  }
+  const done = trabs.filter(t => t.done).length;
+  const total = trabs.length;
+  document.getElementById('trab-done').textContent = done + ' / ' + total;
+  document.getElementById('trab-pct').textContent = total > 0 ? Math.round(done/total*100) + '%' : '0%';
+}
+
+function renderPresupuesto(c) {
+  const mat = totalMat(c);
+  const precio = c.precio || 650;
+  const split = typeof c.split === 'number' ? c.split : 50;
   const beneficio = Math.max(0, precio - mat);
   const tu = beneficio * split / 100;
   const comp = beneficio * (100 - split) / 100;
-
+  
   const ps = document.getElementById('precio-slider');
   if (ps.value != precio) ps.value = precio;
   document.getElementById('precio-out').textContent = precio + ' €';
-
   const ss = document.getElementById('split-slider');
   if (ss.value != split) ss.value = split;
   document.getElementById('split-out').textContent = split + '/' + (100 - split);
-
+  
   document.getElementById('pres-material').textContent = mat.toFixed(2) + ' €';
   document.getElementById('pres-beneficio').textContent = beneficio.toFixed(2) + ' €';
   document.getElementById('pres-tu').textContent = tu.toFixed(2) + ' €';
   document.getElementById('pres-comp').textContent = comp.toFixed(2) + ' €';
-  document.getElementById('comp-vuestro').textContent = precio + ' €';
-  document.getElementById('comp-ahorro').textContent = '~' + (1200 - precio) + ' – ' + (1500 - precio) + ' €';
-  const margenPct = mat > 0 ? Math.round((beneficio / mat) * 100) : 0;
-  document.getElementById('comp-margin').textContent = margenPct + '% margen';
 }
 
-function renderTrabajos() {
-  const list = document.getElementById('trab-list');
-  list.innerHTML = state.trabajos.map(t => `
-    <div class="row">
-      <input type="checkbox" ${t.done ? 'checked' : ''} data-trab-toggle="${t.id}">
-      <span class="name ${t.done ? 'done' : ''}">${escapeHtml(t.name)}</span>
-      <button class="del-btn" data-trab-del="${t.id}" aria-label="Eliminar">×</button>
-    </div>
-  `).join('');
-  const done = state.trabajos.filter(t => t.done).length;
-  const total = state.trabajos.length;
-  document.getElementById('trab-done').textContent = done + ' / ' + total;
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-  document.getElementById('trab-pct').textContent = pct + '%';
-  document.getElementById('trab-progress').style.width = pct + '%';
+// ============================================================
+// GUARDAR FICHA
+// ============================================================
+function recopilarDatos() {
+  if (!currentId) return null;
+  const c = coches[currentId];
+  if (!c) return null;
+  c.marca = document.getElementById('f-marca').value.trim();
+  c.modelo = document.getElementById('f-modelo').value.trim();
+  c.matricula = document.getElementById('f-matricula').value.trim();
+  c.anio = document.getElementById('f-anio').value.trim();
+  c.motor = document.getElementById('f-motor').value.trim();
+  c.km = document.getElementById('f-km').value.trim();
+  c.color = document.getElementById('f-color').value.trim();
+  c.vin = document.getElementById('f-vin').value.trim();
+  c.fechaItv = document.getElementById('f-fecha-itv').value;
+  c.ultRevision = document.getElementById('f-ult-revision').value;
+  c.propNombre = document.getElementById('f-prop-nombre').value.trim();
+  c.propTel = document.getElementById('f-prop-tel').value.trim();
+  c.propDni = document.getElementById('f-prop-dni').value.trim();
+  c.propEmail = document.getElementById('f-prop-email').value.trim();
+  c.propDireccion = document.getElementById('f-prop-direccion').value.trim();
+  c.notas = document.getElementById('f-notas').value;
+  c.tecnica = document.getElementById('f-tecnica').value;
+  const newStatus = document.getElementById('ficha-status').value;
+  if (newStatus !== c.status && newStatus === 'terminado') {
+    c.finishedAt = Date.now();
+  }
+  c.status = newStatus;
+  return c;
 }
 
-function render() {
-  renderMateriales();
-  renderPresupuesto();
-  renderTrabajos();
-}
+document.getElementById('ficha-save').addEventListener('click', async () => {
+  const c = recopilarDatos();
+  if (!c) return;
+  if (!c.marca || !c.modelo || !c.matricula) {
+    alert('Marca, modelo y matrícula son obligatorios.');
+    return;
+  }
+  if (!c.propTel) {
+    alert('El teléfono del propietario es obligatorio.');
+    return;
+  }
+  await saveCoche(c);
+  closeFicha();
+});
 
-function escapeHtml(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
+document.getElementById('ficha-delete').addEventListener('click', async () => {
+  if (!currentId) return;
+  if (!confirm('¿Eliminar esta ficha completa? No se puede deshacer.')) return;
+  await deleteCoche(currentId);
+  closeFicha();
+});
 
-// ===== Event handlers =====
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+document.getElementById('ficha-close').addEventListener('click', closeFicha);
+document.getElementById('modal-ficha').addEventListener('click', e => {
+  if (e.target.id === 'modal-ficha') closeFicha();
+});
+
+document.querySelectorAll('#ficha-tabs button').forEach(b => {
+  b.addEventListener('click', () => {
+    recopilarDatos(); // guardar campos de datos al cambiar de tab
+    switchFichaTab(b.dataset.ftab);
   });
 });
 
-// Delegated clicks
-document.body.addEventListener('click', e => {
+// ============================================================
+// NUEVO COCHE
+// ============================================================
+document.getElementById('btn-nuevo').addEventListener('click', () => {
+  const id = 'coche-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+  const nuevo = {
+    id: id,
+    status: 'pendiente',
+    marca: '', modelo: '', matricula: '',
+    anio: '', motor: '', km: '', color: '', vin: '',
+    fechaItv: '', ultRevision: '',
+    propNombre: '', propTel: '', propDni: '', propEmail: '', propDireccion: '',
+    notas: '', tecnica: '',
+    materiales: [], trabajos: [],
+    precio: 0, split: 50,
+    createdAt: Date.now(),
+    finishedAt: null
+  };
+  coches[id] = nuevo;
+  openFicha(id);
+});
+
+// ============================================================
+// MATERIALES / TRABAJOS / SLIDERS dentro de la ficha
+// ============================================================
+document.body.addEventListener('change', async e => {
+  if (!currentId || !coches[currentId]) return;
+  const c = coches[currentId];
+  if (e.target.dataset.matToggle) {
+    const id = parseInt(e.target.dataset.matToggle);
+    const m = (c.materiales || []).find(x => x.id === id);
+    if (m) { m.active = e.target.checked; renderMateriales(c); queueSaveCurrent(); }
+  }
+  if (e.target.dataset.trabToggle) {
+    const id = parseInt(e.target.dataset.trabToggle);
+    const t = (c.trabajos || []).find(x => x.id === id);
+    if (t) { t.done = e.target.checked; renderTrabajos(c); renderKanban(); queueSaveCurrent(); }
+  }
+});
+
+document.body.addEventListener('click', async e => {
+  if (!currentId || !coches[currentId]) return;
+  const c = coches[currentId];
   const matDel = e.target.closest('[data-mat-del]');
   if (matDel) {
     const id = parseInt(matDel.dataset.matDel);
-    state.materiales = state.materiales.filter(m => m.id !== id);
-    render(); queueSave();
+    c.materiales = (c.materiales || []).filter(x => x.id !== id);
+    renderMateriales(c);
+    queueSaveCurrent();
     return;
   }
   const trabDel = e.target.closest('[data-trab-del]');
   if (trabDel) {
     const id = parseInt(trabDel.dataset.trabDel);
-    state.trabajos = state.trabajos.filter(t => t.id !== id);
-    render(); queueSave();
+    c.trabajos = (c.trabajos || []).filter(x => x.id !== id);
+    renderTrabajos(c);
+    queueSaveCurrent();
     return;
   }
 });
 
-document.body.addEventListener('change', e => {
-  if (e.target.dataset.matToggle) {
-    const id = parseInt(e.target.dataset.matToggle);
-    const m = state.materiales.find(x => x.id === id);
-    if (m) { m.active = e.target.checked; render(); queueSave(); }
-  }
-  if (e.target.dataset.trabToggle) {
-    const id = parseInt(e.target.dataset.trabToggle);
-    const t = state.trabajos.find(x => x.id === id);
-    if (t) { t.done = e.target.checked; render(); queueSave(); }
-  }
-});
-
-document.getElementById('precio-slider').addEventListener('input', e => {
-  state.precio = parseInt(e.target.value);
-  renderPresupuesto();
-});
-document.getElementById('precio-slider').addEventListener('change', queueSave);
-document.getElementById('split-slider').addEventListener('input', e => {
-  state.split = parseInt(e.target.value);
-  renderPresupuesto();
-});
-document.getElementById('split-slider').addEventListener('change', queueSave);
-
 document.getElementById('add-mat-btn').addEventListener('click', () => {
+  if (!currentId) return;
+  const c = coches[currentId];
   const n = document.getElementById('new-mat-name');
   const p = document.getElementById('new-mat-price');
-  const c = document.getElementById('new-mat-cat');
+  const cat = document.getElementById('new-mat-cat');
   if (!n.value.trim() || !p.value) return;
-  const maxId = state.materiales.reduce((m, x) => Math.max(m, x.id), 0);
-  state.materiales.push({
+  if (!c.materiales) c.materiales = [];
+  const maxId = c.materiales.reduce((m, x) => Math.max(m, x.id || 0), 0);
+  c.materiales.push({
     id: maxId + 1,
     name: n.value.trim(),
     price: parseFloat(p.value),
-    cat: c.value,
+    cat: cat.value,
     active: true
   });
   n.value = ''; p.value = '';
-  render(); queueSave();
+  renderMateriales(c);
+  queueSaveCurrent();
 });
 
 document.getElementById('add-trab-btn').addEventListener('click', () => {
+  if (!currentId) return;
+  const c = coches[currentId];
   const n = document.getElementById('new-trab-name');
   if (!n.value.trim()) return;
-  const maxId = state.trabajos.reduce((m, x) => Math.max(m, x.id), 0);
-  state.trabajos.push({ id: maxId + 1, name: n.value.trim(), done: false });
+  if (!c.trabajos) c.trabajos = [];
+  const maxId = c.trabajos.reduce((m, x) => Math.max(m, x.id || 0), 0);
+  c.trabajos.push({ id: maxId + 1, name: n.value.trim(), done: false });
   n.value = '';
-  render(); queueSave();
+  renderTrabajos(c);
+  queueSaveCurrent();
 });
 
-// ===== Init =====
-function init() {
-  loadLocal();
-  render();
-  setSyncStatus('saving', 'Conectando...');
-  startRealtimeSync();
+document.getElementById('precio-slider').addEventListener('input', e => {
+  if (!currentId) return;
+  coches[currentId].precio = parseInt(e.target.value);
+  renderPresupuesto(coches[currentId]);
+});
+document.getElementById('precio-slider').addEventListener('change', queueSaveCurrent);
+document.getElementById('split-slider').addEventListener('input', e => {
+  if (!currentId) return;
+  coches[currentId].split = parseInt(e.target.value);
+  renderPresupuesto(coches[currentId]);
+});
+document.getElementById('split-slider').addEventListener('change', queueSaveCurrent);
+
+function queueSaveCurrent() {
+  if (!currentId) return;
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    if (currentId && coches[currentId]) saveCoche(coches[currentId]);
+  }, 600);
 }
 
-init();
+// ============================================================
+// VIEW TABS (Kanban / Histórico)
+// ============================================================
+document.querySelectorAll('.view-tab').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.view-tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('view-' + b.dataset.view).classList.add('active');
+  });
+});
+
+// ============================================================
+// UTILS
+// ============================================================
+function escapeHtml(s) {
+  if (s == null) return '';
+  const d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+setSyncStatus('saving', 'Conectando...');
+startRealtimeSync();
 </script>
 
 </body>
