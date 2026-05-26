@@ -2921,29 +2921,35 @@ document.getElementById('ia-run').addEventListener('click', async () => {
 // ============================================================
 // IA · ESTIMAR HORAS DE TRABAJO
 // ============================================================
-const PROMPT_ESTIMAR_HORAS = `Eres un mecánico experto con 20 años de experiencia en taller. Te paso la lista de trabajos a realizar en un coche y los materiales que se van a usar. Tu tarea es estimar cuántas horas de mano de obra realista lleva cada trabajo, teniendo en cuenta:
+const PROMPT_ESTIMAR_HORAS = `Eres un mecánico experto con 20 años de experiencia en taller. Te paso la lista de MATERIALES que van a entrar en el presupuesto de un coche. A partir de esos materiales, DEDUCES qué trabajos hay que hacer y estimas las horas de mano de obra realista para cada uno.
 
-- Trabajos simples (cambio de bombillas, escobillas, filtro de aire): minutos, máximo 0.5h cada uno
+REGLAS DE TIEMPOS REALISTAS:
+- Trabajos simples (cambio de bombillas, escobillas, filtro de aire): minutos, máximo 0.3-0.5h cada uno
 - Cambio de aceite + filtro: 0.3-0.5h
 - Cambio de neumáticos (4 ruedas con desmontaje, equilibrado): 0.5-1h
-- Cambio de pastillas freno delanteras: 0.5-1h
-- Distribución completa (correa, tensor, bomba agua si aplica): 3-5h
+- Cambio de pastillas freno por eje: 0.5-1h
+- Distribución completa (correa, tensor, +/- bomba agua): 3-5h
 - Correa auxiliar sola: 0.3-0.5h
 - Junta de cárter (bajar cárter, limpiar, sellar): 1-2h
 - Retén cigüeñal: 1-2h (si va junto a distribución, +0.5h porque ya está abierto)
 - Borrado de fallos OBD (motor, airbag): 0.2h
 - Diagnóstico general / pre-ITV: 0.3-0.5h
-- Trabajos que coinciden o se hacen en paralelo: NO sumar duplicado, optimiza
-- Si la distribución y el retén/junta cárter coinciden, suma menos tiempo extra porque ya hay desmontaje
+- Cambio embrague: 4-6h (caja de cambios fuera)
+- Cambio amortiguadores (por eje): 1-2h
 
-REGLA CRÍTICA: SOLO incluye en el desglose los trabajos que aparezcan EXPLÍCITAMENTE en la lista que te paso. NO INVENTES trabajos adicionales como "embrague", "suspensión", "amortiguadores", "rótulas" etc. si no están en la lista. Si la lista de trabajos está vacía, devuelve total_horas = 0 y desglose = [].
+OPTIMIZACIÓN POR SOLAPAMIENTO:
+- Si la distribución y el retén cigüeñal coinciden, suma menos tiempo extra porque ya hay desmontaje
+- Si junta cárter y cambio aceite coinciden, agrupa
+- No sumes tiempos duplicados de desmontajes compartidos
+
+REGLA CRÍTICA: SOLO incluye en el desglose trabajos que tengan al menos UN material que los justifique en la lista que te paso. Si no hay correa de distribución en la lista, NO incluyas "distribución completa". Si no hay junta de cárter ni silicona, NO incluyas "sustitución junta cárter". Etc.
 
 Devuelve SIEMPRE y SOLO un objeto JSON válido (sin markdown, sin \`\`\`, sin explicaciones) con esta estructura:
 
 {
   "total_horas": número (suma total ya optimizada, máximo 1 decimal),
   "desglose": [
-    { "trabajo": "nombre EXACTO de la lista, no inventes", "horas": número }
+    { "trabajo": "nombre del trabajo deducido", "horas": número, "materiales_relacionados": ["nombre del material 1", "nombre del material 2"] }
   ],
   "cantidades_sugeridas": [
     { "material_id": número, "qty_sugerida": número, "motivo": "explicación corta" }
@@ -2957,51 +2963,61 @@ Para "cantidades_sugeridas":
 - material_id debe ser el ID exacto del material en la lista que te paso.
 - NO sugieras cambios "por si acaso" — solo cuando esté claro.
 
-Sé realista y honesto. No infles las horas.`;
+Sé realista y honesto. No infles las horas. Si dudas sobre un trabajo, mejor omítelo del desglose.`;
 
 async function estimarHorasConIA(c) {
-  // SOLO usamos lo que realmente va a entrar en la factura:
-  // - trabajos NO completados (pendientes)
-  // - materiales ACTIVOS (con checkbox marcado)
-  const trabajosActivos = (c.trabajos || []).filter(t => !t.done);
+  // SOLO usamos los materiales ACTIVOS (con checkbox marcado)
+  // La pestaña Trabajos se IGNORA — la IA deduce los trabajos a partir
+  // de los materiales que de verdad van a entrar en la factura.
   const materialesActivos = (c.materiales || []).filter(m => m.active);
   
-  const trabajos = trabajosActivos.map(t => t.name).filter(Boolean);
-  const materialesTexto = materialesActivos.map(m => {
-    const qty = m.qty || 1;
-    return qty > 1 ? `${m.name} (cantidad actual: ${qty} uds)` : `${m.name} (cantidad actual: 1 ud)`;
-  });
-  
-  if (trabajos.length === 0 && materialesTexto.length === 0) {
-    throw new Error('No hay trabajos ni materiales activos para estimar. Marca primero las cosas que van a entrar en este presupuesto.');
+  if (materialesActivos.length === 0) {
+    throw new Error('No hay materiales activos. Marca primero las piezas que van a entrar en este presupuesto.');
   }
   
   const cocheInfo = `${c.marca || ''} ${c.modelo || ''} ${c.motor || ''}`.trim() || 'Coche sin datos';
   
-  // Mapeo de nombre→id para poder devolver cantidades sugeridas mapeadas
-  const matMap = materialesActivos.map(m => ({ id: m.id, name: m.name, qty: m.qty || 1 }));
-  const matMapJSON = JSON.stringify(matMap);
+  // Mapeo de materiales con sus IDs y cantidades actuales
+  const matMap = materialesActivos.map(m => ({ 
+    id: m.id, 
+    name: m.name, 
+    qty_actual: m.qty || 1,
+    categoria: m.cat || 'otros'
+  }));
+  const matMapJSON = JSON.stringify(matMap, null, 2);
   
   const texto = `COCHE: ${cocheInfo}
 
-TRABAJOS A REALIZAR (solo estos, no inventes otros):
-${trabajos.length > 0 ? trabajos.map(t => '- ' + t).join('\n') : '(ninguno)'}
-
-MATERIALES QUE VAN A ESTE PRESUPUESTO (solo estos, con su cantidad actual):
-${materialesTexto.length > 0 ? materialesTexto.map(m => '- ' + m).join('\n') : '(ninguno)'}
-
-LISTA DE MATERIALES CON IDs (úsala para "cantidades_sugeridas"):
+MATERIALES QUE VAN AL PRESUPUESTO (es la lista REAL y DEFINITIVA — ignora cualquier otro material que no esté aquí):
 ${matMapJSON}
 
-INSTRUCCIÓN IMPORTANTE:
-1. Estima horas SOLO para los trabajos listados arriba. NO inventes trabajos extra (embrague, suspensión, etc.) que no estén en la lista.
-2. Para cada material, revisa si la cantidad actual es coherente con su naturaleza:
-   - Neumáticos: si dice "1" pero el nombre sugiere para 4 ruedas → sugerir 4
-   - Pastillas freno: si va por eje → sugerir 1 (suelen venir en juegos de 2-4 ya empaquetados)
-   - Bombillas: depende, no inventes
-   - Aceite/filtros/silicona/correas: suele ser 1
-   Solo sugiere cambios CLAROS y OBVIOS. Si dudas, deja la cantidad como está.
-3. Devuelve "cantidades_sugeridas" SOLO para los materiales donde claramente hace falta cambiar la cantidad.`;
+TU TAREA:
+1. Analiza los materiales y deduce qué trabajos se están haciendo. Cada material implica un trabajo específico:
+   - Aceite + filtro aceite → "Cambio aceite y filtro"
+   - Filtro aire → "Cambio filtro aire"
+   - Bujías → "Cambio bujías"
+   - Kit distribución / correa distribución / tensor → "Cambio distribución"
+   - Correa auxiliar (micro-V) → "Cambio correa auxiliar"
+   - Junta cárter / silicona junta cárter → "Sustitución junta cárter"
+   - Retén cigüeñal → "Cambio retén cigüeñal"
+   - Bomba agua → "Cambio bomba agua"
+   - Pastillas freno → "Cambio pastillas freno"
+   - Discos freno → "Cambio discos freno"
+   - Líquido frenos → "Sangrado / cambio líquido frenos"
+   - Neumáticos → "Montaje neumáticos" (incluye desmontaje, montaje, equilibrado)
+   - Escobillas → "Cambio escobillas limpiaparabrisas"
+   - Bombillas → "Cambio bombillas"
+   - Borrado fallos / herramienta OBD → "Borrado de fallos / diagnóstico OBD"
+   - Embrague / kit embrague → "Cambio embrague"
+   - Amortiguadores → "Cambio amortiguadores"
+   - Si dos materiales sirven al mismo trabajo (ej. correa + tensor + bomba agua = distribución), AGRÚPALOS en UN solo trabajo.
+   - Si no estás seguro de qué trabajo es un material, NO inventes — omítelo del desglose.
+
+2. Estima horas realistas para cada trabajo deducido.
+
+3. Revisa cantidades obvias (neumáticos x4, escobillas x2 si nombre genérico, etc.)
+
+NO inventes trabajos que no tengan al menos un material que lo justifique en la lista.`;
   
   // Usamos el mismo sistema de fallback de modelos
   const modelos = [
