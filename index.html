@@ -2936,33 +2936,72 @@ const PROMPT_ESTIMAR_HORAS = `Eres un mecánico experto con 20 años de experien
 - Trabajos que coinciden o se hacen en paralelo: NO sumar duplicado, optimiza
 - Si la distribución y el retén/junta cárter coinciden, suma menos tiempo extra porque ya hay desmontaje
 
+REGLA CRÍTICA: SOLO incluye en el desglose los trabajos que aparezcan EXPLÍCITAMENTE en la lista que te paso. NO INVENTES trabajos adicionales como "embrague", "suspensión", "amortiguadores", "rótulas" etc. si no están en la lista. Si la lista de trabajos está vacía, devuelve total_horas = 0 y desglose = [].
+
 Devuelve SIEMPRE y SOLO un objeto JSON válido (sin markdown, sin \`\`\`, sin explicaciones) con esta estructura:
 
 {
   "total_horas": número (suma total ya optimizada, máximo 1 decimal),
   "desglose": [
-    { "trabajo": "nombre del trabajo", "horas": número }
+    { "trabajo": "nombre EXACTO de la lista, no inventes", "horas": número }
   ],
-  "explicacion": "string corta (1-2 frases) explicando si has agrupado trabajos por solapamiento"
+  "cantidades_sugeridas": [
+    { "material_id": número, "qty_sugerida": número, "motivo": "explicación corta" }
+  ],
+  "explicacion": "string corta (1-2 frases) explicando si has agrupado trabajos por solapamiento, o vacío"
 }
 
-Sé realista y honesto. No infles las horas. Si dos trabajos comparten desmontaje (ej. distribución + retén cigüeñal), refleja la optimización en "explicacion" y suma menos tiempo total.`;
+Para "cantidades_sugeridas":
+- Solo incluye un item si la cantidad actual del material es CLARAMENTE incorrecta (ej. 1 neumático cuando son 4 ruedas).
+- Si no detectas problemas obvios de cantidad, devuelve un array vacío [].
+- material_id debe ser el ID exacto del material en la lista que te paso.
+- NO sugieras cambios "por si acaso" — solo cuando esté claro.
+
+Sé realista y honesto. No infles las horas.`;
 
 async function estimarHorasConIA(c) {
-  // Construir el contexto para la IA
-  const trabajos = (c.trabajos || []).map(t => t.name).filter(Boolean);
-  const materiales = (c.materiales || []).filter(m => m.active).map(m => {
+  // SOLO usamos lo que realmente va a entrar en la factura:
+  // - trabajos NO completados (pendientes)
+  // - materiales ACTIVOS (con checkbox marcado)
+  const trabajosActivos = (c.trabajos || []).filter(t => !t.done);
+  const materialesActivos = (c.materiales || []).filter(m => m.active);
+  
+  const trabajos = trabajosActivos.map(t => t.name).filter(Boolean);
+  const materialesTexto = materialesActivos.map(m => {
     const qty = m.qty || 1;
-    return qty > 1 ? `${m.name} (${qty} uds)` : m.name;
+    return qty > 1 ? `${m.name} (cantidad actual: ${qty} uds)` : `${m.name} (cantidad actual: 1 ud)`;
   });
   
-  if (trabajos.length === 0 && materiales.length === 0) {
-    throw new Error('No hay trabajos ni materiales para estimar.');
+  if (trabajos.length === 0 && materialesTexto.length === 0) {
+    throw new Error('No hay trabajos ni materiales activos para estimar. Marca primero las cosas que van a entrar en este presupuesto.');
   }
   
   const cocheInfo = `${c.marca || ''} ${c.modelo || ''} ${c.motor || ''}`.trim() || 'Coche sin datos';
   
-  const texto = `COCHE: ${cocheInfo}\n\nTRABAJOS A REALIZAR:\n${trabajos.length > 0 ? trabajos.map(t => '- ' + t).join('\n') : '(ninguno)'}\n\nMATERIALES QUE SE VAN A USAR:\n${materiales.length > 0 ? materiales.map(m => '- ' + m).join('\n') : '(ninguno)'}`;
+  // Mapeo de nombre→id para poder devolver cantidades sugeridas mapeadas
+  const matMap = materialesActivos.map(m => ({ id: m.id, name: m.name, qty: m.qty || 1 }));
+  const matMapJSON = JSON.stringify(matMap);
+  
+  const texto = `COCHE: ${cocheInfo}
+
+TRABAJOS A REALIZAR (solo estos, no inventes otros):
+${trabajos.length > 0 ? trabajos.map(t => '- ' + t).join('\n') : '(ninguno)'}
+
+MATERIALES QUE VAN A ESTE PRESUPUESTO (solo estos, con su cantidad actual):
+${materialesTexto.length > 0 ? materialesTexto.map(m => '- ' + m).join('\n') : '(ninguno)'}
+
+LISTA DE MATERIALES CON IDs (úsala para "cantidades_sugeridas"):
+${matMapJSON}
+
+INSTRUCCIÓN IMPORTANTE:
+1. Estima horas SOLO para los trabajos listados arriba. NO inventes trabajos extra (embrague, suspensión, etc.) que no estén en la lista.
+2. Para cada material, revisa si la cantidad actual es coherente con su naturaleza:
+   - Neumáticos: si dice "1" pero el nombre sugiere para 4 ruedas → sugerir 4
+   - Pastillas freno: si va por eje → sugerir 1 (suelen venir en juegos de 2-4 ya empaquetados)
+   - Bombillas: depende, no inventes
+   - Aceite/filtros/silicona/correas: suele ser 1
+   Solo sugiere cambios CLAROS y OBVIOS. Si dudas, deja la cantidad como está.
+3. Devuelve "cantidades_sugeridas" SOLO para los materiales donde claramente hace falta cambiar la cantidad.`;
   
   // Usamos el mismo sistema de fallback de modelos
   const modelos = [
@@ -3038,13 +3077,41 @@ document.getElementById('btn-estimar-horas').addEventListener('click', async () 
     c.horas = resultado.total_horas;
     const inputHoras = document.getElementById('f-horas');
     if (inputHoras) inputHoras.value = resultado.total_horas;
+    
+    // Aplicar cantidades sugeridas (si la IA propuso cambios)
+    const cantidadesAplicadas = [];
+    if (Array.isArray(resultado.cantidades_sugeridas)) {
+      resultado.cantidades_sugeridas.forEach(sug => {
+        if (!sug || typeof sug.material_id !== 'number' || typeof sug.qty_sugerida !== 'number') return;
+        if (sug.qty_sugerida < 1) return;
+        const mat = (c.materiales || []).find(m => m.id === sug.material_id);
+        if (mat) {
+          const qtyAnterior = mat.qty || 1;
+          if (qtyAnterior !== sug.qty_sugerida) {
+            mat.qty = Math.round(sug.qty_sugerida);
+            cantidadesAplicadas.push({
+              name: mat.name,
+              de: qtyAnterior,
+              a: mat.qty,
+              motivo: sug.motivo || ''
+            });
+          }
+        }
+      });
+    }
+    
+    renderMateriales(c);
     renderPresupuesto(c);
     renderKanban();
     await saveCoche(c);
     
     // Mostrar éxito
     status.style.color = 'var(--good)';
-    status.innerHTML = `✓ Estimación lista: <b>${resultado.total_horas} horas</b> de mano de obra (${(resultado.total_horas * (c.tarifa || 30)).toFixed(2)} €)`;
+    let msg = `✓ Estimación lista: <b>${resultado.total_horas} horas</b> de mano de obra (${(resultado.total_horas * (c.tarifa || 30)).toFixed(2)} €)`;
+    if (cantidadesAplicadas.length > 0) {
+      msg += ` · <b>${cantidadesAplicadas.length} cantidad${cantidadesAplicadas.length === 1 ? '' : 'es'} ajustada${cantidadesAplicadas.length === 1 ? '' : 's'}</b>`;
+    }
+    status.innerHTML = msg;
     
     // Desglose
     if (Array.isArray(resultado.desglose) && resultado.desglose.length > 0) {
@@ -3066,6 +3133,16 @@ document.getElementById('btn-estimar-horas').addEventListener('click', async () 
         <td style="text-align:right;padding:8px 0;font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--brand);">${resultado.total_horas.toFixed(1)} h</td>
       </tr>`;
       html += `</table>`;
+      if (cantidadesAplicadas.length > 0) {
+        html += `<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+          <div style="font-weight: 600; color: var(--brand); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-size: 11px;">Cantidades ajustadas</div>`;
+        cantidadesAplicadas.forEach(ca => {
+          html += `<div style="font-size:12px;color:var(--ink-2);margin:4px 0;">
+            • ${escapeHtml(ca.name)}: <span style="color:var(--ink-3);">${ca.de}</span> → <span style="color:var(--brand);font-weight:600;">${ca.a}</span>${ca.motivo ? ` <span style="color:var(--ink-3);">(${escapeHtml(ca.motivo)})</span>` : ''}
+          </div>`;
+        });
+        html += `</div>`;
+      }
       if (resultado.explicacion) {
         html += `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--ink-2);font-style:italic;">Nota: ${escapeHtml(resultado.explicacion)}</div>`;
       }
