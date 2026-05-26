@@ -2402,22 +2402,38 @@ document.body.addEventListener('change', async e => {
     const m = (c.materiales || []).find(x => x.id === id);
     if (m) { m.active = e.target.checked; renderMateriales(c); renderKanban(); queueSaveCurrent(); }
   }
+  if (e.target.dataset.trabToggle) {
+    const id = parseInt(e.target.dataset.trabToggle);
+    const t = (c.trabajos || []).find(x => x.id === id);
+    if (t) { t.done = e.target.checked; renderTrabajos(c); renderKanban(); queueSaveCurrent(); }
+  }
+});
+
+// Listener INPUT (no change) para las horas — feedback inmediato + sin re-renderizar la lista
+document.body.addEventListener('input', e => {
+  if (!currentId || !coches[currentId]) return;
+  const c = coches[currentId];
   if (e.target.dataset.matHours) {
     const id = parseInt(e.target.dataset.matHours);
     const m = (c.materiales || []).find(x => x.id === id);
     if (m) {
       const v = parseFloat(e.target.value);
       m.hours = (isNaN(v) || v < 0) ? 0 : v;
-      renderMateriales(c);
+      // Solo actualizamos el subtotal de la lista (no re-renderizamos toda)
+      // y refrescamos el presupuesto y el kanban
+      const totalH = totalHorasMateriales(c);
+      const matTotal = document.getElementById('mat-total');
+      if (matTotal) matTotal.textContent = totalMat(c).toFixed(2) + ' €' + (totalH > 0 ? ' · ' + totalH.toFixed(1) + ' h' : '');
       renderPresupuesto(c);
       renderKanban();
-      queueSaveCurrent();
     }
   }
-  if (e.target.dataset.trabToggle) {
-    const id = parseInt(e.target.dataset.trabToggle);
-    const t = (c.trabajos || []).find(x => x.id === id);
-    if (t) { t.done = e.target.checked; renderTrabajos(c); renderKanban(); queueSaveCurrent(); }
+});
+// Guardado al perder foco (no en cada tecla)
+document.body.addEventListener('change', e => {
+  if (!currentId || !coches[currentId]) return;
+  if (e.target.dataset.matHours) {
+    queueSaveCurrent();
   }
 });
 
