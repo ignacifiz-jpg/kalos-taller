@@ -1153,9 +1153,12 @@
         </div>
 
         <div style="margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn btn-sm" id="btn-estimar-horas">✨ Estimar horas con IA</button>
           <button class="btn btn-sm" id="btn-copiar-presup">📋 Copiar para WhatsApp</button>
           <button class="btn btn-sm btn-primary" id="btn-descargar-pdf">⬇ Descargar PDF presupuesto</button>
         </div>
+        <div id="estimacion-status" style="margin-top: 12px; font-size: 13px; display: none;"></div>
+        <div id="estimacion-detalle" style="margin-top: 12px; display: none;"></div>
       </div>
 
       <!-- TAB TECNICA -->
@@ -2905,6 +2908,161 @@ document.getElementById('ia-run').addEventListener('click', async () => {
   } finally {
     btn.disabled = false;
     btn.textContent = '✨ Rellenar con IA';
+  }
+});
+
+// ============================================================
+// IA · ESTIMAR HORAS DE TRABAJO
+// ============================================================
+const PROMPT_ESTIMAR_HORAS = `Eres un mecánico experto con 20 años de experiencia en taller. Te paso la lista de trabajos a realizar en un coche y los materiales que se van a usar. Tu tarea es estimar cuántas horas de mano de obra realista lleva cada trabajo, teniendo en cuenta:
+
+- Trabajos simples (cambio de bombillas, escobillas, filtro de aire): minutos, máximo 0.5h cada uno
+- Cambio de aceite + filtro: 0.3-0.5h
+- Cambio de neumáticos (4 ruedas con desmontaje, equilibrado): 0.5-1h
+- Cambio de pastillas freno delanteras: 0.5-1h
+- Distribución completa (correa, tensor, bomba agua si aplica): 3-5h
+- Correa auxiliar sola: 0.3-0.5h
+- Junta de cárter (bajar cárter, limpiar, sellar): 1-2h
+- Retén cigüeñal: 1-2h (si va junto a distribución, +0.5h porque ya está abierto)
+- Borrado de fallos OBD (motor, airbag): 0.2h
+- Diagnóstico general / pre-ITV: 0.3-0.5h
+- Trabajos que coinciden o se hacen en paralelo: NO sumar duplicado, optimiza
+- Si la distribución y el retén/junta cárter coinciden, suma menos tiempo extra porque ya hay desmontaje
+
+Devuelve SIEMPRE y SOLO un objeto JSON válido (sin markdown, sin \`\`\`, sin explicaciones) con esta estructura:
+
+{
+  "total_horas": número (suma total ya optimizada, máximo 1 decimal),
+  "desglose": [
+    { "trabajo": "nombre del trabajo", "horas": número }
+  ],
+  "explicacion": "string corta (1-2 frases) explicando si has agrupado trabajos por solapamiento"
+}
+
+Sé realista y honesto. No infles las horas. Si dos trabajos comparten desmontaje (ej. distribución + retén cigüeñal), refleja la optimización en "explicacion" y suma menos tiempo total.`;
+
+async function estimarHorasConIA(c) {
+  // Construir el contexto para la IA
+  const trabajos = (c.trabajos || []).map(t => t.name).filter(Boolean);
+  const materiales = (c.materiales || []).filter(m => m.active).map(m => {
+    const qty = m.qty || 1;
+    return qty > 1 ? `${m.name} (${qty} uds)` : m.name;
+  });
+  
+  if (trabajos.length === 0 && materiales.length === 0) {
+    throw new Error('No hay trabajos ni materiales para estimar.');
+  }
+  
+  const cocheInfo = `${c.marca || ''} ${c.modelo || ''} ${c.motor || ''}`.trim() || 'Coche sin datos';
+  
+  const texto = `COCHE: ${cocheInfo}\n\nTRABAJOS A REALIZAR:\n${trabajos.length > 0 ? trabajos.map(t => '- ' + t).join('\n') : '(ninguno)'}\n\nMATERIALES QUE SE VAN A USAR:\n${materiales.length > 0 ? materiales.map(m => '- ' + m).join('\n') : '(ninguno)'}`;
+  
+  // Usamos el mismo sistema de fallback de modelos
+  const modelos = [
+    'gemini-2.5-flash-lite',
+    'gemini-flash-lite-latest',
+    'gemini-2.0-flash-lite',
+    'gemini-2.5-flash',
+    'gemini-flash-latest'
+  ];
+  let ultimoError = null;
+  for (const modelo of modelos) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${GEMINI_API_KEY}`;
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: texto }] }],
+          systemInstruction: { parts: [{ text: PROMPT_ESTIMAR_HORAS }] },
+          generationConfig: { temperature: 0.2, responseMimeType: "application/json" }
+        })
+      });
+      if (!r.ok) {
+        const err = new Error('HTTP ' + r.status);
+        err.status = r.status;
+        ultimoError = err;
+        if (r.status !== 429 && r.status !== 404) throw err;
+        continue;
+      }
+      const data = await r.json();
+      const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const clean = txt.replace(/^```json\s*/i, '').replace(/```$/, '').trim();
+      return JSON.parse(clean);
+    } catch (e) {
+      ultimoError = e;
+      if (e.status !== 429 && e.status !== 404) throw e;
+    }
+  }
+  throw new Error('No se pudo estimar las horas: ' + (ultimoError ? ultimoError.message : 'error desconocido'));
+}
+
+document.getElementById('btn-estimar-horas').addEventListener('click', async () => {
+  if (!currentId) return;
+  const c = coches[currentId];
+  const status = document.getElementById('estimacion-status');
+  const detalle = document.getElementById('estimacion-detalle');
+  const btn = document.getElementById('btn-estimar-horas');
+  
+  btn.disabled = true;
+  btn.textContent = '⏳ Calculando...';
+  status.style.display = 'block';
+  status.style.color = 'var(--brand)';
+  status.innerHTML = '⏳ Analizando trabajos y materiales con IA...';
+  detalle.style.display = 'none';
+  
+  try {
+    const resultado = await estimarHorasConIA(c);
+    
+    if (!resultado || typeof resultado.total_horas !== 'number') {
+      throw new Error('Respuesta inválida de la IA');
+    }
+    
+    // Aplicar las horas al coche
+    c.horas = resultado.total_horas;
+    const inputHoras = document.getElementById('f-horas');
+    if (inputHoras) inputHoras.value = resultado.total_horas;
+    renderPresupuesto(c);
+    renderKanban();
+    await saveCoche(c);
+    
+    // Mostrar éxito
+    status.style.color = 'var(--good)';
+    status.innerHTML = `✓ Estimación lista: <b>${resultado.total_horas} horas</b> de mano de obra (${(resultado.total_horas * (c.tarifa || 30)).toFixed(2)} €)`;
+    
+    // Desglose
+    if (Array.isArray(resultado.desglose) && resultado.desglose.length > 0) {
+      detalle.style.display = 'block';
+      let html = `
+        <div style="background: var(--bg-3); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;">
+          <div style="font-weight: 600; color: var(--brand); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; font-size: 11px;">Desglose estimado por la IA</div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      `;
+      resultado.desglose.forEach(d => {
+        if (!d || !d.trabajo) return;
+        html += `<tr style="border-bottom:1px solid var(--line, var(--border));">
+          <td style="padding:6px 0;">${escapeHtml(d.trabajo)}</td>
+          <td style="text-align:right;padding:6px 0;font-family:'JetBrains Mono',monospace;color:var(--ink-2);">${(d.horas || 0).toFixed(1)} h</td>
+        </tr>`;
+      });
+      html += `<tr style="border-top:2px solid var(--brand);">
+        <td style="padding:8px 0;font-weight:600;">TOTAL</td>
+        <td style="text-align:right;padding:8px 0;font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--brand);">${resultado.total_horas.toFixed(1)} h</td>
+      </tr>`;
+      html += `</table>`;
+      if (resultado.explicacion) {
+        html += `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--ink-2);font-style:italic;">💡 ${escapeHtml(resultado.explicacion)}</div>`;
+      }
+      html += `</div>`;
+      detalle.innerHTML = html;
+    }
+  } catch (e) {
+    console.error('estimacion error:', e);
+    status.style.color = 'var(--bad)';
+    status.innerHTML = '⚠ Error: ' + escapeHtml(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ Estimar horas con IA';
   }
 });
 
