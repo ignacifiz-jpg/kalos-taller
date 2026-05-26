@@ -1083,8 +1083,8 @@
         <div class="row-list" id="mat-list"></div>
         <div class="add-row">
           <input type="text" id="new-mat-name" placeholder="Concepto">
-          <input type="number" id="new-mat-qty" placeholder="Cant." step="1" min="1" value="1" style="width: 60px;">
-          <input type="number" id="new-mat-price" placeholder="€ /ud" step="0.01">
+          <input type="number" id="new-mat-hours" placeholder="Horas" step="0.1" min="0" value="0" style="width: 70px;" title="Horas que lleva este trabajo">
+          <input type="number" id="new-mat-price" placeholder="€" step="0.01">
           <select id="new-mat-cat">
             <option value="motor">Motor</option>
             <option value="distribucion">Distribución</option>
@@ -1123,8 +1123,9 @@
               <input type="number" id="f-tarifa" min="0" max="200" step="1" value="30">
             </div>
             <div class="field">
-              <label>Horas trabajadas</label>
-              <input type="number" id="f-horas" min="0" max="200" step="0.5" value="0">
+              <label>Total horas (auto)</label>
+              <div id="f-horas-display" style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--brand); font-weight: 600;">0.0 h</div>
+              <div style="font-size: 11px; color: var(--ink-3); margin-top: 4px;">Suma de horas en Materiales</div>
             </div>
           </div>
           <div class="slider-row" style="margin-top:18px">
@@ -1511,7 +1512,7 @@ const DEFAULT_KALOS = {
     { id: 12, name: 'Junta cárter + retén cigüeñal', price: 30.00, cat: 'motor', active: true },
     { id: 13, name: 'Bombillas lote ITV', price: 12.00, cat: 'electrico', active: true },
     { id: 14, name: 'Borrado fallos airbag', price: 30.00, cat: 'electrico', active: true },
-    { id: 15, name: 'Neumáticos Star Performer 185/60 R14', price: 40.99, qty: 4, cat: 'neumaticos', active: true }
+    { id: 15, name: 'Neumáticos Star Performer 185/60 R14 (4 ud)', price: 163.96, hours: 0, cat: 'neumaticos', active: true }
   ],
   trabajos: [
     { id: 1, name: 'Distribución completa', done: false },
@@ -1584,6 +1585,16 @@ function startRealtimeSync() {
       }
       if (!c.materiales) c.materiales = [];
       if (!c.trabajos) c.trabajos = [];
+      
+      // MIGRACIÓN: si tiene qty antiguo, multiplicar precio×qty y convertir a precio total + hours=0
+      c.materiales.forEach(m => {
+        if (typeof m.qty === 'number' && m.qty > 1) {
+          m.price = (m.price || 0) * m.qty;
+        }
+        delete m.qty;
+        if (typeof m.hours !== 'number') m.hours = 0;
+      });
+      
       coches[id] = c;
     });
     
@@ -1609,7 +1620,12 @@ function startRealtimeSync() {
 // ============================================================
 function totalMat(c) {
   if (!c.materiales) return 0;
-  return c.materiales.filter(m => m.active).reduce((s, m) => s + ((m.price || 0) * (m.qty || 1)), 0);
+  return c.materiales.filter(m => m.active).reduce((s, m) => s + (m.price || 0), 0);
+}
+
+function totalHorasMateriales(c) {
+  if (!c.materiales) return 0;
+  return c.materiales.filter(m => m.active).reduce((s, m) => s + (m.hours || 0), 0);
 }
 function progresoTrabajos(c) {
   if (!c.trabajos || c.trabajos.length === 0) return 0;
@@ -1825,24 +1841,22 @@ function renderMateriales(c) {
     list.innerHTML = '<div class="col-empty" style="margin:0">Sin materiales. Añade abajo.</div>';
   } else {
     list.innerHTML = mats.map(m => {
-      const qty = m.qty || 1;
-      const subtotal = (m.price || 0) * qty;
+      const hours = m.hours || 0;
       return `
       <div class="row ${m.active ? '' : 'inactive'}">
         <input type="checkbox" ${m.active ? 'checked' : ''} data-mat-toggle="${m.id}">
         <span class="name">${escapeHtml(m.name)}</span>
         <span class="cat-badge cat-${m.cat}">${CAT_LABELS[m.cat] || m.cat}</span>
-        <input type="number" min="1" step="1" value="${qty}" data-mat-qty="${m.id}" style="width: 50px; background: var(--bg); border: 1px solid var(--border); color: var(--ink); padding: 4px 6px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px; text-align: center;" title="Cantidad">
-        <span style="color: var(--ink-3); font-size: 11px;">×</span>
-        <span class="price" style="min-width: 60px;">${(m.price || 0).toFixed(2)} €</span>
-        <span style="color: var(--ink-3); font-size: 11px;">=</span>
-        <span class="price" style="min-width: 70px; color: var(--brand); font-weight: 600;">${subtotal.toFixed(2)} €</span>
+        <input type="number" min="0" step="0.1" value="${hours}" data-mat-hours="${m.id}" style="width: 55px; background: var(--bg); border: 1px solid var(--border); color: var(--ink); padding: 4px 6px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px; text-align: center;" title="Horas de trabajo">
+        <span style="color: var(--ink-3); font-size: 11px;">h</span>
+        <span class="price" style="min-width: 70px; color: var(--brand); font-weight: 600;">${(m.price || 0).toFixed(2)} €</span>
         <button class="del-btn" data-mat-del="${m.id}" aria-label="Eliminar">×</button>
       </div>
       `;
     }).join('');
   }
-  document.getElementById('mat-total').textContent = totalMat(c).toFixed(2) + ' €';
+  const totalH = totalHorasMateriales(c);
+  document.getElementById('mat-total').textContent = totalMat(c).toFixed(2) + ' €' + (totalH > 0 ? ' · ' + totalH.toFixed(1) + ' h' : '');
   document.getElementById('mat-count').textContent = mats.filter(m => m.active).length;
 }
 
@@ -1869,16 +1883,18 @@ function renderTrabajos(c) {
 function calcularPresupuesto(c) {
   const margen = typeof c.margen === 'number' ? c.margen : 15;
   const tarifa = typeof c.tarifa === 'number' ? c.tarifa : 30;
-  const horas = typeof c.horas === 'number' ? c.horas : 0;
   const ajuste = typeof c.ajuste === 'number' ? c.ajuste : 0;
   const split = typeof c.split === 'number' ? c.split : 50;
   
-  // Coste piezas (lo que pagamos)
+  // Coste piezas (cada precio es el TOTAL — no se multiplica por nada)
   const piezasActivas = (c.materiales || []).filter(m => m.active);
-  const costePiezas = piezasActivas.reduce((s, m) => s + ((m.price || 0) * (m.qty || 1)), 0);
+  const costePiezas = piezasActivas.reduce((s, m) => s + (m.price || 0), 0);
   
   // Precio piezas al cliente (con margen)
   const precioPiezasCliente = costePiezas * (1 + margen / 100);
+  
+  // Horas: suma de horas de cada pieza activa
+  const horas = piezasActivas.reduce((s, m) => s + (m.hours || 0), 0);
   
   // Mano de obra
   const manoObra = tarifa * horas;
@@ -1888,7 +1904,7 @@ function calcularPresupuesto(c) {
   const total = Math.max(0, subtotal + ajuste);
   
   // Beneficio (lo que ganamos)
-  const beneficio = total - costePiezas; // sale margen piezas + toda la mano de obra + ajuste
+  const beneficio = total - costePiezas;
   
   // Reparto
   const tu = beneficio * split / 100;
@@ -1918,8 +1934,8 @@ function renderPresupuesto(c) {
   if (fm && fm.value != p.margen) fm.value = p.margen;
   const ft = document.getElementById('f-tarifa');
   if (ft && ft.value != p.tarifa) ft.value = p.tarifa;
-  const fh = document.getElementById('f-horas');
-  if (fh && fh.value != p.horas) fh.value = p.horas;
+  const fhd = document.getElementById('f-horas-display');
+  if (fhd) fhd.textContent = p.horas.toFixed(1) + ' h';
   
   const aj = document.getElementById('ajuste-slider');
   if (aj && aj.value != p.ajuste) aj.value = p.ajuste;
@@ -1941,26 +1957,26 @@ function renderPresupuesto(c) {
       html += `<table style="width:100%;border-collapse:collapse;">
         <tr style="border-bottom:1px solid var(--border);color:var(--ink-3);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">
           <th style="text-align:left;padding:6px 0;font-weight:500;">Pieza</th>
-          <th style="text-align:center;padding:6px 6px;font-weight:500;">Cant.</th>
-          <th style="text-align:right;padding:6px 8px;font-weight:500;">Coste/ud</th>
+          <th style="text-align:center;padding:6px 6px;font-weight:500;">Horas</th>
+          <th style="text-align:right;padding:6px 8px;font-weight:500;">Coste</th>
           <th style="text-align:right;padding:6px 0;font-weight:500;">Cliente (+${p.margen}%)</th>
         </tr>`;
       p.piezasActivas.forEach(m => {
-        const qty = m.qty || 1;
-        const precioClienteUd = (m.price || 0) * (1 + p.margen / 100);
-        const precioClienteTotal = precioClienteUd * qty;
+        const precioCliente = (m.price || 0) * (1 + p.margen / 100);
+        const horasPieza = m.hours || 0;
         html += `<tr style="border-bottom:1px solid var(--line, var(--border));">
           <td style="padding:8px 0;">
             <div>${escapeHtml(m.name)}</div>
             <div style="font-size:10px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">${CAT_NOMBRE_LARGO[m.cat] || m.cat}</div>
           </td>
-          <td style="text-align:center;padding:8px 6px;color:var(--ink-2);font-family:'JetBrains Mono',monospace;">${qty}</td>
+          <td style="text-align:center;padding:8px 6px;color:${horasPieza>0?'var(--ink-2)':'var(--ink-3)'};font-family:'JetBrains Mono',monospace;">${horasPieza > 0 ? horasPieza.toFixed(1) + 'h' : '—'}</td>
           <td style="text-align:right;padding:8px;color:var(--ink-3);font-family:'JetBrains Mono',monospace;">${(m.price||0).toFixed(2)} €</td>
-          <td style="text-align:right;padding:8px 0;font-family:'JetBrains Mono',monospace;font-weight:500;">${precioClienteTotal.toFixed(2)} €</td>
+          <td style="text-align:right;padding:8px 0;font-family:'JetBrains Mono',monospace;font-weight:500;">${precioCliente.toFixed(2)} €</td>
         </tr>`;
       });
       html += `<tr style="background:var(--bg-3);">
-        <td style="padding:8px 0;font-weight:500;" colspan="2">Subtotal piezas</td>
+        <td style="padding:8px 0;font-weight:500;">Subtotal piezas</td>
+        <td style="text-align:center;padding:8px 6px;color:var(--brand);font-family:'JetBrains Mono',monospace;font-weight:600;">${p.horas.toFixed(1)}h</td>
         <td style="text-align:right;padding:8px;color:var(--ink-3);font-family:'JetBrains Mono',monospace;">${p.costePiezas.toFixed(2)} €</td>
         <td style="text-align:right;padding:8px 0;font-weight:600;color:var(--brand);font-family:'JetBrains Mono',monospace;">${p.precioPiezasCliente.toFixed(2)} €</td>
       </tr>`;
@@ -1972,7 +1988,7 @@ function renderPresupuesto(c) {
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <div>
           <div style="font-weight:500;">Mano de obra</div>
-          <div style="font-size:11px;color:var(--ink-3);margin-top:2px;">${p.horas} h × ${p.tarifa} €/h</div>
+          <div style="font-size:11px;color:var(--ink-3);margin-top:2px;">${p.horas.toFixed(1)} h × ${p.tarifa} €/h</div>
         </div>
         <div style="font-family:'JetBrains Mono',monospace;font-weight:500;">${p.manoObra.toFixed(2)} €</div>
       </div>
@@ -2022,18 +2038,12 @@ function presupuestoTextoWhatsApp(c) {
     txt += `_(sin piezas)_\n`;
   } else {
     p.piezasActivas.forEach(m => {
-      const qty = m.qty || 1;
-      const precioCliUd = (m.price || 0) * (1 + p.margen / 100);
-      const importe = precioCliUd * qty;
-      if (qty > 1) {
-        txt += `· ${m.name} (${qty} ud): ${importe.toFixed(2)} €\n`;
-      } else {
-        txt += `· ${m.name}: ${importe.toFixed(2)} €\n`;
-      }
+      const precioCli = (m.price || 0) * (1 + p.margen / 100);
+      txt += `· ${m.name}: ${precioCli.toFixed(2)} €\n`;
     });
   }
   txt += `Subtotal piezas: ${p.precioPiezasCliente.toFixed(2)} €\n`;
-  txt += `\n*Mano de obra:* ${p.horas} h × ${p.tarifa} €/h = ${p.manoObra.toFixed(2)} €\n`;
+  txt += `\n*Mano de obra:* ${p.horas.toFixed(1)} h × ${p.tarifa} €/h = ${p.manoObra.toFixed(2)} €\n`;
   if (p.ajuste !== 0) {
     txt += `*${p.ajuste < 0 ? 'Descuento' : 'Suplemento'}:* ${p.ajuste >= 0 ? '+' : ''}${p.ajuste.toFixed(2)} €\n`;
   }
@@ -2172,15 +2182,13 @@ function generarPDFPresupuesto(c) {
   // Construir filas
   const filas = [];
   p.piezasActivas.forEach(m => {
-    const qty = m.qty || 1;
-    const precioClienteUd = (m.price || 0) * (1 + p.margen / 100);
-    const importe = precioClienteUd * qty;
+    const precioCliente = (m.price || 0) * (1 + p.margen / 100);
+    const horasPieza = m.hours || 0;
     filas.push([
       m.name,
       CAT_NOMBRE_LARGO[m.cat] || m.cat,
-      String(qty),
-      precioClienteUd.toFixed(2) + ' €',
-      importe.toFixed(2) + ' €'
+      horasPieza > 0 ? horasPieza.toFixed(1) + ' h' : '—',
+      precioCliente.toFixed(2) + ' €'
     ]);
   });
   
@@ -2189,15 +2197,14 @@ function generarPDFPresupuesto(c) {
     filas.push([
       'Mano de obra',
       'Servicio',
-      p.horas + ' h',
-      p.tarifa.toFixed(2) + ' €/h',
+      p.horas.toFixed(1) + ' h × ' + p.tarifa + ' €/h',
       p.manoObra.toFixed(2) + ' €'
     ]);
   }
   
   doc.autoTable({
     startY: y,
-    head: [['Concepto', 'Categoría', 'Cantidad', 'P. unitario', 'Importe']],
+    head: [['Concepto', 'Categoría', 'Horas', 'Importe']],
     body: filas,
     theme: 'plain',
     styles: {
@@ -2219,11 +2226,10 @@ function generarPDFPresupuesto(c) {
       fillColor: [248, 247, 244]
     },
     columnStyles: {
-      0: { cellWidth: 70, fontStyle: 'bold' },
-      1: { cellWidth: 28, textColor: INK_DIM, fontSize: 8 },
-      2: { cellWidth: 22, halign: 'center' },
-      3: { cellWidth: 28, halign: 'right' },
-      4: { cellWidth: 26, halign: 'right', fontStyle: 'bold' }
+      0: { cellWidth: 80, fontStyle: 'bold' },
+      1: { cellWidth: 32, textColor: INK_DIM, fontSize: 8 },
+      2: { cellWidth: 30, halign: 'center', textColor: INK_DIM },
+      3: { cellWidth: 32, halign: 'right', fontStyle: 'bold' }
     },
     margin: { left: margin, right: margin }
   });
@@ -2396,12 +2402,12 @@ document.body.addEventListener('change', async e => {
     const m = (c.materiales || []).find(x => x.id === id);
     if (m) { m.active = e.target.checked; renderMateriales(c); renderKanban(); queueSaveCurrent(); }
   }
-  if (e.target.dataset.matQty) {
-    const id = parseInt(e.target.dataset.matQty);
+  if (e.target.dataset.matHours) {
+    const id = parseInt(e.target.dataset.matHours);
     const m = (c.materiales || []).find(x => x.id === id);
     if (m) {
-      const v = parseInt(e.target.value);
-      m.qty = (isNaN(v) || v < 1) ? 1 : v;
+      const v = parseFloat(e.target.value);
+      m.hours = (isNaN(v) || v < 0) ? 0 : v;
       renderMateriales(c);
       renderPresupuesto(c);
       renderKanban();
@@ -2442,21 +2448,21 @@ document.getElementById('add-mat-btn').addEventListener('click', () => {
   const c = coches[currentId];
   const n = document.getElementById('new-mat-name');
   const p = document.getElementById('new-mat-price');
-  const q = document.getElementById('new-mat-qty');
+  const h = document.getElementById('new-mat-hours');
   const cat = document.getElementById('new-mat-cat');
   if (!n.value.trim() || !p.value) return;
   if (!c.materiales) c.materiales = [];
   const maxId = c.materiales.reduce((m, x) => Math.max(m, x.id || 0), 0);
-  const qty = parseInt(q.value);
+  const hours = parseFloat(h.value);
   c.materiales.push({
     id: maxId + 1,
     name: n.value.trim(),
     price: parseFloat(p.value),
-    qty: (isNaN(qty) || qty < 1) ? 1 : qty,
+    hours: (isNaN(hours) || hours < 0) ? 0 : hours,
     cat: cat.value,
     active: true
   });
-  n.value = ''; p.value = ''; q.value = '1';
+  n.value = ''; p.value = ''; h.value = '0';
   renderMateriales(c);
   renderKanban();
   queueSaveCurrent();
@@ -2490,7 +2496,6 @@ function bindPresupuestoInput(id, prop, isFloat) {
 }
 bindPresupuestoInput('f-margen', 'margen', false);
 bindPresupuestoInput('f-tarifa', 'tarifa', false);
-bindPresupuestoInput('f-horas', 'horas', true);
 bindPresupuestoInput('ajuste-slider', 'ajuste', false);
 bindPresupuestoInput('split-slider', 'split', false);
 
@@ -2807,12 +2812,15 @@ function aplicarDatosIA(c, ia, soloRellenarVacios) {
       // Evitar duplicados por nombre
       const dup = c.materiales.some(x => x.name && x.name.toLowerCase().trim() === m.name.toLowerCase().trim());
       if (dup && soloRellenarVacios) return;
+      // Si la IA da qty>1, multiplicamos precio×qty para tener precio total (ya no usamos qty)
+      let precio = typeof m.price === 'number' ? m.price : 0;
       const qty = (typeof m.qty === 'number' && m.qty >= 1) ? Math.round(m.qty) : 1;
+      if (qty > 1) precio = precio * qty;
       c.materiales.push({
         id: next++,
-        name: m.name,
-        price: typeof m.price === 'number' ? m.price : 0,
-        qty: qty,
+        name: qty > 1 ? `${m.name} (${qty} ud)` : m.name,
+        price: precio,
+        hours: 0,
         cat: ['motor','distribucion','electrico','neumaticos','otros'].includes(m.cat) ? m.cat : 'otros',
         active: true
       });
@@ -2921,49 +2929,44 @@ document.getElementById('ia-run').addEventListener('click', async () => {
 // ============================================================
 // IA · ESTIMAR HORAS DE TRABAJO
 // ============================================================
-const PROMPT_ESTIMAR_HORAS = `Eres un mecánico experto con 20 años de experiencia en taller. Te paso la lista de MATERIALES que van a entrar en el presupuesto de un coche. A partir de esos materiales, DEDUCES qué trabajos hay que hacer y estimas las horas de mano de obra realista para cada uno.
+const PROMPT_ESTIMAR_HORAS = `Eres un mecánico experto con 20 años de experiencia en taller. Te paso la lista de MATERIALES que van a entrar en el presupuesto de un coche. A partir de esos materiales, DEDUCES qué trabajos hay que hacer, estimas las horas y ASIGNAS esas horas a los materiales correspondientes.
 
 REGLAS DE TIEMPOS REALISTAS:
-- Trabajos simples (cambio de bombillas, escobillas, filtro de aire): minutos, máximo 0.3-0.5h cada uno
-- Cambio de aceite + filtro: 0.3-0.5h
-- Cambio de neumáticos (4 ruedas con desmontaje, equilibrado): 0.5-1h
-- Cambio de pastillas freno por eje: 0.5-1h
-- Distribución completa (correa, tensor, +/- bomba agua): 3-5h
-- Correa auxiliar sola: 0.3-0.5h
-- Junta de cárter (bajar cárter, limpiar, sellar): 1-2h
-- Retén cigüeñal: 1-2h (si va junto a distribución, +0.5h porque ya está abierto)
-- Borrado de fallos OBD (motor, airbag): 0.2h
-- Diagnóstico general / pre-ITV: 0.3-0.5h
-- Cambio embrague: 4-6h (caja de cambios fuera)
-- Cambio amortiguadores (por eje): 1-2h
+- Bombillas, escobillas, filtro aire, tornillo purgador: 0.1-0.3h cada uno
+- Cambio aceite + filtro: 0.4h (asignar a UN solo material: el aceite o el filtro)
+- Cambio neumáticos (4 ruedas con desmontaje, equilibrado): 0.8h
+- Cambio pastillas freno por eje: 0.7h
+- Distribución completa (correa, tensor, +/- bomba agua): 4h
+- Correa auxiliar sola: 0.4h
+- Junta de cárter: 1.5h
+- Retén cigüeñal: 1.5h (si va junto a distribución, 0.5h porque ya está abierto)
+- Borrado de fallos OBD: 0.2h
+- Cambio embrague: 5h
+- Cambio amortiguadores por eje: 1.5h
 
-OPTIMIZACIÓN POR SOLAPAMIENTO:
-- Si la distribución y el retén cigüeñal coinciden, suma menos tiempo extra porque ya hay desmontaje
-- Si junta cárter y cambio aceite coinciden, agrupa
-- No sumes tiempos duplicados de desmontajes compartidos
+REGLA DE ASIGNACIÓN DE HORAS:
+- Las horas de un trabajo se asignan a UN SOLO material (el más representativo del trabajo).
+- Si un trabajo agrupa varios materiales (ej. distribución = kit + correa + tensor), pones todas las horas en UNO solo (ej. el kit) y CERO en los demás.
+- Esto evita duplicar horas y permite que la suma total sea exacta.
 
-REGLA CRÍTICA: SOLO incluye en el desglose trabajos que tengan al menos UN material que los justifique en la lista que te paso. Si no hay correa de distribución en la lista, NO incluyas "distribución completa". Si no hay junta de cárter ni silicona, NO incluyas "sustitución junta cárter". Etc.
+REGLA CRÍTICA: SOLO incluye trabajos que tengan al menos UN material en la lista. NO inventes trabajos sin material.
 
-Devuelve SIEMPRE y SOLO un objeto JSON válido (sin markdown, sin \`\`\`, sin explicaciones) con esta estructura:
+Devuelve SOLO un objeto JSON válido (sin markdown) con esta estructura:
 
 {
-  "total_horas": número (suma total ya optimizada, máximo 1 decimal),
+  "total_horas": número (suma total),
   "desglose": [
-    { "trabajo": "nombre del trabajo deducido", "horas": número, "materiales_relacionados": ["nombre del material 1", "nombre del material 2"] }
+    { "trabajo": "nombre del trabajo deducido", "horas": número, "materiales_relacionados": ["nombre de los materiales"] }
   ],
-  "cantidades_sugeridas": [
-    { "material_id": número, "qty_sugerida": número, "motivo": "explicación corta" }
+  "horas_por_material": [
+    { "material_id": número, "horas": número, "trabajo": "nombre del trabajo" }
   ],
-  "explicacion": "string corta (1-2 frases) explicando si has agrupado trabajos por solapamiento, o vacío"
+  "explicacion": "string corta o vacío"
 }
 
-Para "cantidades_sugeridas":
-- Solo incluye un item si la cantidad actual del material es CLARAMENTE incorrecta (ej. 1 neumático cuando son 4 ruedas).
-- Si no detectas problemas obvios de cantidad, devuelve un array vacío [].
-- material_id debe ser el ID exacto del material en la lista que te paso.
-- NO sugieras cambios "por si acaso" — solo cuando esté claro.
+En "horas_por_material" incluye TODOS los materiales activos (los que tengan horas=0 también), para que se pueda resetear correctamente.
 
-Sé realista y honesto. No infles las horas. Si dudas sobre un trabajo, mejor omítelo del desglose.`;
+Sé realista. No infles las horas. Si dudas, mejor menos horas que más.`;
 
 async function estimarHorasConIA(c) {
   // SOLO usamos los materiales ACTIVOS (con checkbox marcado)
@@ -2977,47 +2980,28 @@ async function estimarHorasConIA(c) {
   
   const cocheInfo = `${c.marca || ''} ${c.modelo || ''} ${c.motor || ''}`.trim() || 'Coche sin datos';
   
-  // Mapeo de materiales con sus IDs y cantidades actuales
+  // Mapeo de materiales con sus IDs y precio total
   const matMap = materialesActivos.map(m => ({ 
     id: m.id, 
     name: m.name, 
-    qty_actual: m.qty || 1,
+    precio_total: m.price || 0,
+    horas_actuales: m.hours || 0,
     categoria: m.cat || 'otros'
   }));
   const matMapJSON = JSON.stringify(matMap, null, 2);
   
   const texto = `COCHE: ${cocheInfo}
 
-MATERIALES QUE VAN AL PRESUPUESTO (es la lista REAL y DEFINITIVA — ignora cualquier otro material que no esté aquí):
+MATERIALES QUE VAN AL PRESUPUESTO (lista REAL y DEFINITIVA — el "precio_total" YA es el total, no se multiplica por nada):
 ${matMapJSON}
 
 TU TAREA:
-1. Analiza los materiales y deduce qué trabajos se están haciendo. Cada material implica un trabajo específico:
-   - Aceite + filtro aceite → "Cambio aceite y filtro"
-   - Filtro aire → "Cambio filtro aire"
-   - Bujías → "Cambio bujías"
-   - Kit distribución / correa distribución / tensor → "Cambio distribución"
-   - Correa auxiliar (micro-V) → "Cambio correa auxiliar"
-   - Junta cárter / silicona junta cárter → "Sustitución junta cárter"
-   - Retén cigüeñal → "Cambio retén cigüeñal"
-   - Bomba agua → "Cambio bomba agua"
-   - Pastillas freno → "Cambio pastillas freno"
-   - Discos freno → "Cambio discos freno"
-   - Líquido frenos → "Sangrado / cambio líquido frenos"
-   - Neumáticos → "Montaje neumáticos" (incluye desmontaje, montaje, equilibrado)
-   - Escobillas → "Cambio escobillas limpiaparabrisas"
-   - Bombillas → "Cambio bombillas"
-   - Borrado fallos / herramienta OBD → "Borrado de fallos / diagnóstico OBD"
-   - Embrague / kit embrague → "Cambio embrague"
-   - Amortiguadores → "Cambio amortiguadores"
-   - Si dos materiales sirven al mismo trabajo (ej. correa + tensor + bomba agua = distribución), AGRÚPALOS en UN solo trabajo.
-   - Si no estás seguro de qué trabajo es un material, NO inventes — omítelo del desglose.
+1. Deduce qué trabajos se están haciendo a partir de los materiales (un material → un trabajo, varios materiales del mismo trabajo → AGRUPAR).
+2. Estima horas realistas para cada trabajo.
+3. ASIGNA esas horas a UN solo material representativo del trabajo (los demás materiales del mismo trabajo tendrán 0 horas).
+4. Devuelve "horas_por_material" con TODOS los materiales activos (incluso los que tendrán 0 horas).
 
-2. Estima horas realistas para cada trabajo deducido.
-
-3. Revisa cantidades obvias (neumáticos x4, escobillas x2 si nombre genérico, etc.)
-
-NO inventes trabajos que no tengan al menos un material que lo justifique en la lista.`;
+NO inventes trabajos sin materiales que los justifiquen.`;
   
   // Usamos el mismo sistema de fallback de modelos
   const modelos = [
@@ -3089,28 +3073,20 @@ document.getElementById('btn-estimar-horas').addEventListener('click', async () 
       throw new Error('Respuesta inválida de la IA');
     }
     
-    // Aplicar las horas al coche
-    c.horas = resultado.total_horas;
-    const inputHoras = document.getElementById('f-horas');
-    if (inputHoras) inputHoras.value = resultado.total_horas;
-    
-    // Aplicar cantidades sugeridas (si la IA propuso cambios)
-    const cantidadesAplicadas = [];
-    if (Array.isArray(resultado.cantidades_sugeridas)) {
-      resultado.cantidades_sugeridas.forEach(sug => {
-        if (!sug || typeof sug.material_id !== 'number' || typeof sug.qty_sugerida !== 'number') return;
-        if (sug.qty_sugerida < 1) return;
-        const mat = (c.materiales || []).find(m => m.id === sug.material_id);
-        if (mat) {
-          const qtyAnterior = mat.qty || 1;
-          if (qtyAnterior !== sug.qty_sugerida) {
-            mat.qty = Math.round(sug.qty_sugerida);
-            cantidadesAplicadas.push({
-              name: mat.name,
-              de: qtyAnterior,
-              a: mat.qty,
-              motivo: sug.motivo || ''
-            });
+    // Aplicar horas a cada material (la IA nos devuelve horas_por_material)
+    const horasAplicadas = [];
+    if (Array.isArray(resultado.horas_por_material)) {
+      // Resetear horas de todos los materiales activos primero
+      (c.materiales || []).filter(m => m.active).forEach(m => { m.hours = 0; });
+      
+      resultado.horas_por_material.forEach(hp => {
+        if (!hp || typeof hp.material_id !== 'number' || typeof hp.horas !== 'number') return;
+        if (hp.horas < 0) return;
+        const mat = (c.materiales || []).find(m => m.id === hp.material_id);
+        if (mat && mat.active) {
+          mat.hours = Math.round(hp.horas * 10) / 10; // 1 decimal
+          if (mat.hours > 0) {
+            horasAplicadas.push({ name: mat.name, horas: mat.hours, trabajo: hp.trabajo || '' });
           }
         }
       });
@@ -3123,45 +3099,40 @@ document.getElementById('btn-estimar-horas').addEventListener('click', async () 
     
     // Mostrar éxito
     status.style.color = 'var(--good)';
-    let msg = `✓ Estimación lista: <b>${resultado.total_horas} horas</b> de mano de obra (${(resultado.total_horas * (c.tarifa || 30)).toFixed(2)} €)`;
-    if (cantidadesAplicadas.length > 0) {
-      msg += ` · <b>${cantidadesAplicadas.length} cantidad${cantidadesAplicadas.length === 1 ? '' : 'es'} ajustada${cantidadesAplicadas.length === 1 ? '' : 's'}</b>`;
-    }
+    const totalHorasCalc = horasAplicadas.reduce((s, h) => s + h.horas, 0);
+    let msg = `✓ Estimación lista: <b>${totalHorasCalc.toFixed(1)} horas</b> · ${(totalHorasCalc * (c.tarifa || 30)).toFixed(2)} €`;
     status.innerHTML = msg;
     
-    // Desglose
+    // Desglose: trabajos deducidos por la IA + horas por material
     if (Array.isArray(resultado.desglose) && resultado.desglose.length > 0) {
       detalle.style.display = 'block';
       let html = `
         <div style="background: var(--bg-3); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;">
-          <div style="font-weight: 600; color: var(--brand); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; font-size: 11px;">Desglose estimado por la IA</div>
+          <div style="font-weight: 600; color: var(--brand); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; font-size: 11px;">Trabajos deducidos por la IA</div>
           <table style="width:100%;border-collapse:collapse;font-size:13px;">
       `;
       resultado.desglose.forEach(d => {
         if (!d || !d.trabajo) return;
+        const matsRel = Array.isArray(d.materiales_relacionados) && d.materiales_relacionados.length > 0
+          ? `<div style="font-size:10px;color:var(--ink-3);margin-top:2px;">${d.materiales_relacionados.map(escapeHtml).join(', ')}</div>`
+          : '';
         html += `<tr style="border-bottom:1px solid var(--line, var(--border));">
-          <td style="padding:6px 0;">${escapeHtml(d.trabajo)}</td>
-          <td style="text-align:right;padding:6px 0;font-family:'JetBrains Mono',monospace;color:var(--ink-2);">${(d.horas || 0).toFixed(1)} h</td>
+          <td style="padding:6px 0;">
+            <div>${escapeHtml(d.trabajo)}</div>
+            ${matsRel}
+          </td>
+          <td style="text-align:right;padding:6px 0;font-family:'JetBrains Mono',monospace;color:var(--ink-2);vertical-align:top;">${(d.horas || 0).toFixed(1)} h</td>
         </tr>`;
       });
       html += `<tr style="border-top:2px solid var(--brand);">
         <td style="padding:8px 0;font-weight:600;">TOTAL</td>
-        <td style="text-align:right;padding:8px 0;font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--brand);">${resultado.total_horas.toFixed(1)} h</td>
+        <td style="text-align:right;padding:8px 0;font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--brand);">${totalHorasCalc.toFixed(1)} h</td>
       </tr>`;
       html += `</table>`;
-      if (cantidadesAplicadas.length > 0) {
-        html += `<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
-          <div style="font-weight: 600; color: var(--brand); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-size: 11px;">Cantidades ajustadas</div>`;
-        cantidadesAplicadas.forEach(ca => {
-          html += `<div style="font-size:12px;color:var(--ink-2);margin:4px 0;">
-            • ${escapeHtml(ca.name)}: <span style="color:var(--ink-3);">${ca.de}</span> → <span style="color:var(--brand);font-weight:600;">${ca.a}</span>${ca.motivo ? ` <span style="color:var(--ink-3);">(${escapeHtml(ca.motivo)})</span>` : ''}
-          </div>`;
-        });
-        html += `</div>`;
-      }
       if (resultado.explicacion) {
         html += `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--ink-2);font-style:italic;">Nota: ${escapeHtml(resultado.explicacion)}</div>`;
       }
+      html += `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--ink-3);">Las horas se han asignado automáticamente a las piezas relacionadas. Puedes editarlas manualmente en la pestaña Materiales.</div>`;
       html += `</div>`;
       detalle.innerHTML = html;
     }
