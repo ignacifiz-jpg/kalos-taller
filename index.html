@@ -3123,26 +3123,36 @@ document.getElementById('ia-run').addEventListener('click', async () => {
 // ============================================================
 const PROMPT_FOTO_MATERIALES = `Eres un experto en analizar facturas, albaranes y capturas de pantalla de tiendas de recambios de automoción (AUTODOC, Recambios Gaudí, Oscaro, RecambiosCoche, Eurorepar, etc.).
 
-Tu tarea: extraer TODOS los materiales/productos que aparezcan en la imagen con DOS precios:
-- "precio_coste": el precio que paga el taller (CON descuento aplicado, neto, lo que aparece como "tu precio", "precio neto", "importe", "total línea")
-- "precio_pvp": el precio recomendado / sin descuento / PVP (el "precio tarifa", "P. lista", "PVP", "antes de descuento")
+Tu tarea: extraer TODOS los materiales/productos que aparezcan en la imagen con DOS precios. MUY IMPORTANTE: los dos precios que devuelvas deben ser SIEMPRE el TOTAL DE LA LÍNEA (el importe final de esa fila), NUNCA el precio unitario.
 
-REGLAS IMPORTANTES:
-- Si solo ves UN precio en una línea, ponlo en "precio_coste" y deja "precio_pvp" igual al coste (no es PVP separado).
-- Si ves dos precios y uno tiene un descuento aplicado (ej. "10,00 € (-20%) = 8,00 €"), entonces precio_pvp=10 y precio_coste=8.
-- Si ves columnas "Precio", "Dto", "Importe": precio_pvp = "Precio", precio_coste = "Importe" (el importe ya tiene el dto aplicado).
-- Los precios son en euros. Si están en otra moneda, conviértelos siempre a euros aproximados.
-- Las cantidades (uds) hay que detectarlas: si una línea pone "x4" o "Cantidad: 4", multiplica el coste y el PVP por esa cantidad para tener precio total.
-- Para "categoria" usa: motor, distribucion, electrico, neumaticos, otros
-- Para "horas" pon 0 (las horas se calculan después)
-- Si una línea no es un material (es un envío, impuesto, descuento global, aportación SIGAUS, redondeo), OMÍTELA.
-- Si no estás seguro de qué es algo, mejor omitirlo que inventarlo.
+- "precio_coste": lo que paga el taller en TOTAL por esa línea (con descuento aplicado, neto). Es la columna "Importe", "Total línea", "Neto", "Total".
+- "precio_pvp": el precio recomendado SIN descuento, en TOTAL para esa línea (PVP × cantidad si hay varias unidades).
+
+CÓMO LEER LAS COLUMNAS DE UN ALBARÁN/FACTURA TÍPICO:
+Las facturas suelen tener columnas: [Cantidad] [Precio unitario] [Dto%] [Importe total]
+- Ejemplo: "185/65 HR15 DELINTE   4,00   45,000   180,00"
+  → Cantidad = 4, Precio unitario = 45, Importe TOTAL = 180
+  → DEBES devolver: precio_coste = 180 (el importe total, NO 45×4 otra vez), precio_pvp = 180 (si no hay descuento visible)
+  → cantidad = 4 (solo para el nombre)
+- REGLA DE ORO: si en la fila ya aparece una columna de "Importe" o "Total" que es el resultado de multiplicar cantidad × precio unitario, USA ESE NÚMERO TAL CUAL. NO lo vuelvas a multiplicar por la cantidad.
+- Solo multiplica tú manualmente si en la imagen SOLO aparece el precio unitario y la cantidad, pero NO aparece el importe total ya calculado.
+
+DESCUENTOS (PVP vs coste):
+- Si ves un precio tarifa y un descuento que da un neto menor (ej. "Precio 100 · Dto 20% · Importe 80"), entonces precio_pvp = 100 (total), precio_coste = 80 (total).
+- Si solo ves un precio sin descuento, pon precio_coste = precio_pvp = ese importe total.
+
+OTRAS REGLAS:
+- Los precios en euros. Convierte si están en otra moneda.
+- "categoria": motor, distribucion, electrico, neumaticos, otros
+- "horas": pon 0 (se calculan después)
+- Omite líneas que NO son material: envíos, impuestos/IVA, descuento global, aportación SIGAUS/SIGNUS, redondeos, bases imponibles, totales de factura.
+- Si no estás seguro de qué es algo, omítelo.
 
 Devuelve SOLO un JSON válido (sin markdown, sin \`\`\`):
 
 {
   "materiales": [
-    { "name": "string descriptivo", "precio_coste": número, "precio_pvp": número, "categoria": "string", "cantidad": número (default 1) }
+    { "name": "string descriptivo", "precio_coste": número (TOTAL de línea), "precio_pvp": número (TOTAL de línea), "categoria": "string", "cantidad": número (default 1, solo informativo) }
   ],
   "fuente": "string (ej: 'Recambios Gaudí - 25/05/26')",
   "observaciones": "string corta o vacío"
@@ -3256,21 +3266,18 @@ document.getElementById('mat-foto-input').addEventListener('change', async (e) =
     resultado.materiales.forEach(m => {
       if (!m || !m.name) return;
       const cantidad = (typeof m.cantidad === 'number' && m.cantidad >= 1) ? Math.round(m.cantidad) : 1;
-      let coste = typeof m.precio_coste === 'number' ? m.precio_coste : 0;
-      let pvp = typeof m.precio_pvp === 'number' ? m.precio_pvp : coste;
-      // Si la IA dio precio unitario y cantidad>1, multiplicar para tener precio total
-      if (cantidad > 1) {
-        coste = coste * cantidad;
-        pvp = pvp * cantidad;
-      }
+      // precio_coste y precio_pvp YA son totales de línea (la IA no multiplica, nosotros tampoco)
+      const coste = typeof m.precio_coste === 'number' ? m.precio_coste : 0;
+      const pvp = typeof m.precio_pvp === 'number' ? m.precio_pvp : coste;
       const nombreFinal = cantidad > 1 ? `${m.name} (${cantidad} ud)` : m.name;
       const cat = ['motor','distribucion','electrico','neumaticos','otros'].includes(m.categoria) ? m.categoria : 'otros';
       c.materiales.push({
         id: next++,
         name: nombreFinal,
         price: coste,
-        pvp: pvp > coste ? pvp : null, // solo guardar PVP si es diferente al coste
+        pvp: pvp > coste ? pvp : null, // solo guardar PVP si es diferente (mayor) al coste
         hours: 0,
+        dto: 0,
         cat: cat,
         active: true
       });
