@@ -2322,11 +2322,13 @@ function generarPDFPresupuesto(c) {
   doc.text('Gracias por confiar en nuestro taller.', pageWidth / 2, pieY + 17, { align: 'center' });
   
   // ====== NOMBRE DE ARCHIVO ======
-  const nombreArchivo = [
-    'Presupuesto',
-    c.matricula ? c.matricula.replace(/\s+/g, '') : (c.modelo || 'coche'),
-    new Date().toISOString().slice(0, 10)
-  ].filter(Boolean).join('_') + '.pdf';
+  // Formato: "Presupuesto Daewoo Kalos.pdf" (nombre del coche + palabra Presupuesto)
+  const nombreCoche = tituloCoche(c); // marca + modelo, ej. "Daewoo Kalos / Chevrolet Aveo"
+  const nombreLimpio = nombreCoche
+    .replace(/\//g, '-')        // las barras / no valen en nombres de archivo
+    .replace(/\s+/g, ' ')        // espacios múltiples a uno
+    .trim();
+  const nombreArchivo = `Presupuesto ${nombreLimpio}.pdf`;
   
   doc.save(nombreArchivo);
 }
