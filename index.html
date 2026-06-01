@@ -1795,6 +1795,14 @@ function openFicha(id) {
   const c = coches[id];
   document.getElementById('ficha-titulo').textContent = tituloCoche(c) + (c.matricula ? ' · ' + c.matricula : '');
   
+  // Limpiar preview de foto de materiales (del coche anterior)
+  const fotoPreview = document.getElementById('mat-foto-preview');
+  const fotoStatus = document.getElementById('mat-foto-status');
+  const fotoInput = document.getElementById('mat-foto-input');
+  if (fotoPreview) { fotoPreview.style.display = 'none'; fotoPreview.innerHTML = ''; }
+  if (fotoStatus) { fotoStatus.style.display = 'none'; fotoStatus.innerHTML = ''; }
+  if (fotoInput) fotoInput.value = '';
+  
   // Llenar todos los campos
   document.getElementById('f-marca').value = c.marca || '';
   document.getElementById('f-modelo').value = c.modelo || '';
@@ -3084,7 +3092,7 @@ document.getElementById('mat-foto-input').addEventListener('change', async (e) =
   
   // Mostrar preview de la imagen
   preview.style.display = 'block';
-  preview.innerHTML = `<div style="display:flex;gap:12px;align-items:flex-start;"><img src="${URL.createObjectURL(file)}" style="max-width: 200px; max-height: 150px; border-radius: 6px; border: 1px solid var(--border);"><div style="flex:1;font-size:12px;color:var(--ink-3);">📁 ${escapeHtml(file.name)}<br>Tamaño: ${(file.size/1024).toFixed(0)} KB</div></div>`;
+  preview.innerHTML = `<div style="display:flex;gap:12px;align-items:flex-start;"><img src="${URL.createObjectURL(file)}" style="max-width: 200px; max-height: 150px; border-radius: 6px; border: 1px solid var(--border);"><div style="flex:1;font-size:12px;color:var(--ink-3);">📁 ${escapeHtml(file.name)}<br>Tamaño: ${(file.size/1024).toFixed(0)} KB</div><button id="mat-foto-clear" class="btn btn-sm" style="flex-shrink:0;">✕ Quitar foto</button></div>`;
   
   status.style.display = 'block';
   status.style.color = 'var(--brand)';
@@ -3155,6 +3163,20 @@ document.getElementById('mat-foto-input').addEventListener('change', async (e) =
   } finally {
     btn.disabled = false;
     btn.textContent = '📷 Elegir otra foto';
+  }
+});
+
+// Botón quitar foto (delegación de evento porque se crea dinámicamente)
+document.body.addEventListener('click', (e) => {
+  if (e.target && e.target.id === 'mat-foto-clear') {
+    const preview = document.getElementById('mat-foto-preview');
+    const status = document.getElementById('mat-foto-status');
+    const input = document.getElementById('mat-foto-input');
+    const btn = document.getElementById('mat-foto-btn');
+    if (preview) { preview.style.display = 'none'; preview.innerHTML = ''; }
+    if (status) { status.style.display = 'none'; status.innerHTML = ''; }
+    if (input) input.value = '';
+    if (btn) btn.textContent = '📷 Elegir foto';
   }
 });
 
